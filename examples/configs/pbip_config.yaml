@@ -1,0 +1,14 @@
+parameters:
+  - name: "Name"
+    type: "string"
+  - name: "Owner"
+    type: "string"
+
+output:
+  naming_pattern: "{Name}_{Owner}"
+  directory: "./output"
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "pbi_automation.log" 

@@ -1,0 +1,6 @@
+region,department,date_range,budget,is_active,title
+North,Marketing,2024-01-01 to 2024-12-31,500000.0,true,North Marketing Report
+South,Sales,2024-01-01 to 2024-12-31,750000.0,true,South Sales Report
+East,Finance,2024-01-01 to 2024-12-31,300000.0,false,East Finance Report
+West,HR,2024-01-01 to 2024-12-31,200000.0,true,West HR Report
+Central,IT,2024-01-01 to 2024-12-31,1000000.0,true,Central IT Report 

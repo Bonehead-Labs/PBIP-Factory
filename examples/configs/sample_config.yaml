@@ -1,0 +1,29 @@
+parameters:
+  - name: "region"
+    path: "report.parameters.region.value"
+    type: "string"
+  - name: "department"
+    path: "report.parameters.department.value"
+    type: "string"
+  - name: "date_range"
+    path: "report.parameters.dateRange.value"
+    type: "string"
+  - name: "budget"
+    path: "report.parameters.budget.value"
+    type: "float"
+  - name: "is_active"
+    path: "report.parameters.isActive.value"
+    type: "boolean"
+  - name: "title"
+    path: "report.name"
+    type: "string"
+
+output:
+  format: "pbip"
+  naming_pattern: "{region}_{department}_{date_range}"
+  directory: "./output"
+
+logging:
+  level: "INFO"
+  format: "json"
+  file: "pbi_automation.log" 
