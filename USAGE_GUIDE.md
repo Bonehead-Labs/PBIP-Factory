@@ -16,9 +16,9 @@ pip install -e .
 ```bash
 # Generate reports from template
 pbi-automation generate \
-    --template examples/templates/sample_template.pbip \
-    --config examples/configs/sample_config.yaml \
-    --data examples/data/sample_data.csv \
+    --template Example_PBIP \
+    --config examples/configs/pbip_config.yaml \
+    --data examples/data/pbip_data.csv \
     --output-dir ./output
 ```
 
@@ -27,59 +27,52 @@ pbi-automation generate \
 ```bash
 # Validate all files before generation
 pbi-automation validate \
-    --template examples/templates/sample_template.pbip \
-    --config examples/configs/sample_config.yaml \
-    --data examples/data/sample_data.csv
+    --template Example_PBIP \
+    --config examples/configs/pbip_config.yaml \
+    --data examples/data/pbip_data.csv
 ```
 
 ## Configuration Guide
 
-### Template File (PBIP)
+### PBIP Template Structure
 
-Your Power BI project file should be in JSON format with parameters that can be updated:
+Your Power BI project folder should have this structure:
+
+```
+Example_PBIP/
+├── Example_PBIP.pbip
+├── Example_PBIP.Report/
+│   ├── definition.pbir
+│   └── report.json
+└── Example_PBIP.SemanticModel/
+    ├── definition.pbism
+    ├── diagramLayout.json
+    └── model.bim  # Contains the parameters to update
+```
+
+The tool reads parameters from the `model.bim` file in the SemanticModel folder. Parameters are defined as expressions like:
 
 ```json
 {
-  "version": "1.0",
-  "report": {
-    "name": "Sample Report",
-    "parameters": {
-      "region": {
-        "name": "Region",
-        "type": "string",
-        "value": "North"
-      },
-      "budget": {
-        "name": "Budget",
-        "type": "float",
-        "value": 1000000.0
-      }
-    }
-  }
+  "name": "Name",
+  "expression": "\"Name A\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]"
 }
 ```
 
 ### Configuration File (YAML)
 
-Define how CSV columns map to template parameters:
+Define how CSV columns map to parameters in the model.bim file:
 
 ```yaml
 parameters:
-  - name: "region"           # CSV column name
-    path: "report.parameters.region.value"  # JSON path in template
-    type: "string"           # Data type: string, integer, float, boolean
+  - name: "Name"           # CSV column name (must match parameter name in model.bim)
+    type: "string"         # Data type: string, integer, float, boolean
   
-  - name: "budget"
-    path: "report.parameters.budget.value"
-    type: "float"
-  
-  - name: "title"
-    path: "report.name"      # Can update any JSON field
+  - name: "Owner"
     type: "string"
 
 output:
-  format: "pbip"            # Output format: pbip or pbix
-  naming_pattern: "{region}_{department}_{date_range}"  # Filename pattern
+  naming_pattern: "{Name}_{Owner}"  # Filename pattern using CSV columns
   directory: "./output"
 
 logging:
@@ -90,13 +83,15 @@ logging:
 
 ### Data File (CSV)
 
-Your CSV should contain columns matching the parameter names:
+Your CSV should contain columns matching the parameter names in your model.bim:
 
 ```csv
-region,department,date_range,budget,is_active,title
-North,Marketing,2024-01-01 to 2024-12-31,500000.0,true,North Marketing Report
-South,Sales,2024-01-01 to 2024-12-31,750000.0,true,South Sales Report
-East,Finance,2024-01-01 to 2024-12-31,300000.0,false,East Finance Report
+Name,Owner
+North_Report,Marketing_Team
+South_Report,Sales_Team
+East_Report,Finance_Team
+West_Report,HR_Team
+Central_Report,IT_Team
 ```
 
 ## Advanced Features
@@ -107,7 +102,7 @@ Preview changes without generating files:
 
 ```bash
 pbi-automation generate \
-    --template template.pbip \
+    --template Example_PBIP \
     --config config.yaml \
     --data data.csv \
     --output-dir ./output \
@@ -120,7 +115,7 @@ Get detailed output during processing:
 
 ```bash
 pbi-automation generate \
-    --template template.pbip \
+    --template Example_PBIP \
     --config config.yaml \
     --data data.csv \
     --output-dir ./output \
@@ -133,8 +128,8 @@ Use any CSV column in your filename pattern:
 
 ```yaml
 output:
-  naming_pattern: "{region}_{department}_{timestamp}"
-  # Will generate: North_Marketing_20240620_143022.pbip
+  naming_pattern: "{Name}_{Owner}_{timestamp}"
+  # Will generate: North_Report_Marketing_Team_20240620_143022/
 ```
 
 ### Type Conversion
@@ -150,9 +145,9 @@ The tool automatically converts data types:
 
 ### 1. Template Design
 
-- Use descriptive parameter names
-- Include default values for all parameters
+- Use descriptive parameter names in your Power BI model
 - Test your template in Power BI Desktop first
+- Ensure parameters are properly defined in model.bim
 
 ### 2. Configuration Management
 
@@ -170,12 +165,10 @@ The tool automatically converts data types:
 
 ```
 project/
-├── templates/
-│   ├── sales_report.pbip
-│   └── marketing_report.pbip
+├── Example_PBIP/              # Your PBIP template
 ├── configs/
-│   ├── sales_config.yaml
-│   └── marketing_config.yaml
+│   ├── regional_config.yaml
+│   └── department_config.yaml
 ├── data/
 │   ├── regions.csv
 │   └── departments.csv
@@ -187,9 +180,9 @@ project/
 
 ### Common Issues
 
-1. **Parameter not found in template**
-   - Check the JSON path in your config
-   - Verify the template structure
+1. **Parameter not found in model.bim**
+   - Check that parameter names in CSV match exactly with model.bim
+   - Verify the parameter exists in the SemanticModel
 
 2. **Type conversion errors**
    - Ensure CSV data matches expected types
@@ -207,7 +200,7 @@ project/
 
 ```bash
 # Validate configuration
-pbi-automation validate -t template.pbip -c config.yaml -d data.csv
+pbi-automation validate -t Example_PBIP -c config.yaml -d data.csv
 
 # List available templates
 pbi-automation list-templates
@@ -218,35 +211,33 @@ pbi-automation info
 
 ## Examples
 
-### Example 1: Regional Sales Reports
+### Example 1: Regional Reports
 
-**Template**: `sales_template.pbip`
+**Template**: `Example_PBIP`
 **Config**: `regional_config.yaml`
 **Data**: `regions.csv`
 
 ```bash
 pbi-automation generate \
-    --template templates/sales_template.pbip \
+    --template Example_PBIP \
     --config configs/regional_config.yaml \
     --data data/regions.csv \
     --output-dir ./regional_reports \
-    --format pbip \
     --verbose
 ```
 
-### Example 2: Department Budget Reports
+### Example 2: Department Reports
 
-**Template**: `budget_template.pbip`
-**Config**: `budget_config.yaml`
+**Template**: `Example_PBIP`
+**Config**: `department_config.yaml`
 **Data**: `departments.csv`
 
 ```bash
 pbi-automation generate \
-    --template templates/budget_template.pbip \
-    --config configs/budget_config.yaml \
+    --template Example_PBIP \
+    --config configs/department_config.yaml \
     --data data/departments.csv \
-    --output-dir ./budget_reports \
-    --format pbix \
+    --output-dir ./department_reports \
     --dry-run
 ```
 
@@ -259,20 +250,10 @@ pbi-automation generate \
 - name: Generate Power BI Reports
   run: |
     pbi-automation generate \
-      --template ${{ github.workspace }}/templates/report.pbip \
+      --template ${{ github.workspace }}/Example_PBIP \
       --config ${{ github.workspace }}/configs/config.yaml \
       --data ${{ github.workspace }}/data/parameters.csv \
       --output-dir ${{ github.workspace }}/output
-```
-
-### Database Integration
-
-The tool supports database configurations (future feature):
-
-```yaml
-database:
-  connection_string: "postgresql://user:pass@localhost/db"
-  query: "SELECT region, department, budget FROM parameters"
 ```
 
 ## Support

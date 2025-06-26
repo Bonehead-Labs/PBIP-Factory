@@ -53,9 +53,9 @@ pbi-automation generate --template Example_PBIP --config config.yaml --data para
 
 # With verbose logging
 pbi-automation generate \
-    --template ./templates/sales_report \
-    --config ./configs/sales_config.yaml \
-    --data ./data/regions.csv \
+    --template ./Example_PBIP \
+    --config ./examples/configs/pbip_config.yaml \
+    --data ./examples/data/pbip_data.csv \
     --output-dir ./generated_reports \
     --verbose
 ```
@@ -193,32 +193,18 @@ pbi-template-automation/
 │       │   ├── config.py          # Configuration models
 │       │   ├── data.py            # Data models
 │       │   └── pbip.py            # PBIP structure models
-│       ├── utils/
-│       │   ├── __init__.py
-│       │   ├── logger.py          # Logging utilities
-│       │   ├── file_utils.py      # File operations
-│       │   └── cli_utils.py       # CLI utilities
-│       └── database/
+│       └── utils/
 │           ├── __init__.py
-│           ├── models.py          # Database models
-│           └── connection.py      # Database connection
-├── tests/
-│   ├── __init__.py
-│   ├── test_cli.py
-│   ├── test_processor.py
-│   └── test_models.py
+│           ├── logger.py          # Logging utilities
+│           ├── file_utils.py      # File operations
+│           └── cli_utils.py       # CLI utilities
+├── Example_PBIP/                  # Example PBIP template
 ├── examples/
-│   ├── templates/
 │   ├── configs/
+│   │   └── pbip_config.yaml      # Example configuration
 │   └── data/
-├── PBIP/                          # Example PBIP template
-│   ├── Example_PBIP.pbip
-│   ├── Example_PBIP.Report/
-│   └── Example_PBIP.SemanticModel/
-├── docs/
-├── pyproject.toml
-├── README.md
-└── requirements.txt
+│       └── pbip_data.csv         # Example CSV data
+└── output/                       # Generated PBIP projects
 ```
 
 ## PBIP Template Requirements
@@ -284,7 +270,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
-- [ ] Database integration for configuration storage
 - [ ] Web-based configuration interface
 - [ ] Template versioning and management
 - [ ] Integration with Power BI Service API

@@ -1,31 +1,65 @@
-import structlog
-from rich.console import Console
 import logging
+import structlog
+from typing import Optional
+from pathlib import Path
 
-console = Console()
 
-structlog.configure(
-    processors=[
+def setup_logging(verbose: bool = False, log_file: Optional[Path] = None):
+    """Setup structured logging."""
+    processors = [
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.dev.ConsoleRenderer(),
-    ],
-    wrapper_class=structlog.make_filtering_bound_logger(20),
-    context_class=dict,
-    logger_factory=structlog.PrintLoggerFactory(),
-    cache_logger_on_first_use=True,
-)
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer()
+    ]
+    
+    structlog.configure(
+        processors=processors,
+        context_class=dict,
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        wrapper_class=structlog.stdlib.BoundLogger,
+        cache_logger_on_first_use=True,
+    )
+    
+    level = logging.DEBUG if verbose else logging.INFO
+    
+    if log_file:
+        logging.basicConfig(
+            format="%(message)s",
+            stream=open(log_file, 'w'),
+            level=level
+        )
+    else:
+        logging.basicConfig(
+            format="%(message)s",
+            level=level
+        )
 
-logger = structlog.get_logger()
 
 def log_info(message: str):
+    """Log an info message."""
+    logger = structlog.get_logger()
     logger.info(message)
-    console.print(f"[green][INFO][/green] {message}")
+
 
 def log_error(message: str):
+    """Log an error message."""
+    logger = structlog.get_logger()
     logger.error(message)
-    console.print(f"[red][ERROR][/red] {message}")
 
-def setup_logging(verbose: bool = False, level: str = "INFO"):
-    """Setup logging level and format."""
-    log_level = logging.DEBUG if verbose else getattr(logging, level.upper(), logging.INFO)
-    logging.basicConfig(level=log_level) 
+
+def log_warning(message: str):
+    """Log a warning message."""
+    logger = structlog.get_logger()
+    logger.warning(message)
+
+
+def log_success(message: str):
+    """Log a success message."""
+    logger = structlog.get_logger()
+    logger.info(message) 

@@ -1,24 +1,28 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Dict, Any
+from pathlib import Path
+import yaml
 
-class ParameterConfig(BaseModel):
-    """Configuration for a parameter that can be updated."""
-    name: str = Field(..., description="Parameter name (must match name in model.bim)")
-    type: str = Field(..., description="Parameter type: string, integer, float, boolean")
 
-class OutputConfig(BaseModel):
-    """Configuration for output settings."""
-    naming_pattern: str = Field(..., description="Pattern for naming generated folders")
-    directory: str = Field("./output", description="Output directory for generated folders")
+class ParameterConfig:
+    """Configuration for a single parameter."""
+    
+    def __init__(self, name: str, type: str = "string"):
+        self.name = name
+        self.type = type
 
-class LoggingConfig(BaseModel):
-    """Configuration for logging settings."""
-    level: str = Field("INFO", description="Logging level")
-    format: str = Field("json", description="Log format")
-    file: Optional[str] = Field(None, description="Log file path")
 
-class AppConfig(BaseModel):
-    """Main application configuration."""
-    parameters: List[ParameterConfig] = Field(..., description="List of parameters to update")
-    output: OutputConfig = Field(..., description="Output configuration")
-    logging: LoggingConfig = Field(default_factory=LoggingConfig, description="Logging configuration") 
+class Config:
+    """Configuration for the PBIP automation."""
+    
+    def __init__(self, parameters: List[Dict[str, Any]], output: Dict[str, Any] = None, logging: Dict[str, Any] = None):
+        self.parameters = [ParameterConfig(**param) for param in parameters]
+        self.output = output or {}
+        self.logging = logging or {}
+    
+    @classmethod
+    def from_yaml(cls, yaml_path: Path) -> 'Config':
+        """Load configuration from a YAML file."""
+        with open(yaml_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+        
+        return cls(**data) 

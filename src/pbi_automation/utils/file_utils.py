@@ -1,6 +1,6 @@
 import json
 import yaml
-import pandas as pd
+import csv
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -17,5 +17,6 @@ def read_yaml(path: Path) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 def read_csv(path: Path) -> List[Dict[str, Any]]:
-    df = pd.read_csv(path)
-    return df.to_dict(orient='records') 
+    with open(path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        return list(reader) 

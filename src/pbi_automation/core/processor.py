@@ -2,206 +2,188 @@ import json
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List
-from datetime import datetime
+from ..utils.logger import log_info, log_error, log_warning
+from ..models.config import Config
+from ..models.data import DataRow
 
-from ..models.config import AppConfig, ParameterConfig
-from ..utils.file_utils import read_json, write_json
-from ..utils.logger import log_info, log_error
 
 class PBIPProcessor:
-    def __init__(self, template_path: Path, config: dict, output_dir: Path):
-        self.template_path = template_path
-        self.config = AppConfig(**config)
-        self.output_dir = output_dir
-        self._validate_template()
-
-    def _validate_template(self):
-        """Validate that the template path is a valid PBIP folder."""
-        if not self.template_path.is_dir():
-            raise ValueError(f"Template path must be a directory: {self.template_path}")
+    """Process PBIP templates to generate new projects."""
+    
+    def __init__(self, config: Config):
+        self.config = config
+    
+    def process_data(self, template_path: Path, data: List[DataRow], output_dir: Path) -> int:
+        """Process all data rows and generate PBIP projects."""
+        success_count = 0
         
-        # Check for required PBIP files
-        pbip_file = self.template_path / f"{self.template_path.name}.pbip"
-        if not pbip_file.exists():
-            raise ValueError(f"PBIP file not found: {pbip_file}")
-        
-        # Check for Report and SemanticModel folders
-        report_folder = self.template_path / f"{self.template_path.name}.Report"
-        semantic_model_folder = self.template_path / f"{self.template_path.name}.SemanticModel"
-        
-        if not report_folder.exists():
-            raise ValueError(f"Report folder not found: {report_folder}")
-        
-        if not semantic_model_folder.exists():
-            raise ValueError(f"SemanticModel folder not found: {semantic_model_folder}")
-        
-        # Check for model.bim file
-        model_bim = semantic_model_folder / "model.bim"
-        if not model_bim.exists():
-            raise ValueError(f"model.bim file not found: {model_bim}")
-        
-        log_info(f"Validated PBIP template: {self.template_path}")
-
-    def _update_parameter_in_model_bim(self, model_bim_path: Path, param_name: str, new_value: Any) -> bool:
-        """Update a parameter value in model.bim file."""
-        try:
-            # Read the model.bim file
-            with open(model_bim_path, 'r', encoding='utf-8') as f:
-                model_data = json.load(f)
-            
-            # Find the parameter in expressions
-            expressions = model_data.get("model", {}).get("expressions", [])
-            parameter_found = False
-            
-            for expression in expressions:
-                if expression.get("name") == param_name:
-                    # Update the expression value
-                    # The expression format is: "\"value\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]"
-                    if isinstance(new_value, str):
-                        # Escape quotes in string values
-                        escaped_value = new_value.replace('"', '\\"')
-                        expression["expression"] = f'"{escaped_value}" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]'
-                    else:
-                        # For non-string values, convert to string
-                        expression["expression"] = f'"{str(new_value)}" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]'
+        for i, row in enumerate(data, 1):
+            try:
+                log_info(f"Processing row {i}/{len(data)}: {row.get_folder_name()}")
+                
+                if self.process_row(template_path, row, output_dir):
+                    success_count += 1
+                    log_info(f"Generated PBIP folder: {row.get_folder_name()}")
+                else:
+                    log_error(f"Failed to process row {i}: Failed to generate PBIP")
                     
-                    parameter_found = True
-                    log_info(f"Updated parameter '{param_name}' to '{new_value}'")
-                    break
+            except Exception as e:
+                log_error(f"Failed to process row {i}: {str(e)}")
+        
+        return success_count
+    
+    def process_row(self, template_path: Path, row: DataRow, output_dir: Path) -> bool:
+        """Process a single data row and generate a PBIP project."""
+        try:
+            # Create output folder name
+            folder_name = row.get_folder_name()
+            output_folder = output_dir / folder_name
+            report_name = row.data.get("Report_Name", folder_name)
             
-            if not parameter_found:
-                log_error(f"Parameter '{param_name}' not found in model.bim")
+            # Copy the entire template folder
+            if not self._copy_pbip_folder(template_path, output_folder):
                 return False
             
-            # Write the updated model.bim file
-            with open(model_bim_path, 'w', encoding='utf-8') as f:
-                json.dump(model_data, f, indent=2, ensure_ascii=False)
+            # Rename internal files and folders
+            self._rename_internal_files_and_folders(output_folder, report_name)
+            
+            # Recursively replace all Example_PBIP references in all files
+            self._replace_references_in_files(output_folder, "Example_PBIP", report_name)
+            
+            # Update parameters in model.bim
+            semantic_model_folder = output_folder / f"{report_name}.SemanticModel"
+            model_bim_path = semantic_model_folder / "model.bim"
+            
+            if not self._update_parameters_in_model_bim(model_bim_path, row):
+                log_error("Failed to update parameters in model.bim")
+                return False
+            
+            # Delete cache.abf file for proper data loading
+            if not self._delete_cache_file(semantic_model_folder):
+                log_warning("Failed to delete cache.abf file")
             
             return True
             
         except Exception as e:
-            log_error(f"Failed to update parameter '{param_name}' in model.bim: {e}")
+            log_error(f"Failed to process row: {str(e)}")
             return False
-
+    
     def _copy_pbip_folder(self, source_path: Path, dest_path: Path) -> bool:
         """Copy the entire PBIP folder to a new location."""
         try:
             if dest_path.exists():
                 shutil.rmtree(dest_path)
             
+            # Copy the entire folder structure as-is
             shutil.copytree(source_path, dest_path)
             log_info(f"Copied PBIP folder to: {dest_path}")
             return True
             
         except Exception as e:
-            log_error(f"Failed to copy PBIP folder: {e}")
+            log_error(f"Failed to copy PBIP folder: {str(e)}")
             return False
-
-    def _generate_folder_name(self, row: Dict[str, Any]) -> str:
-        """Generate folder name based on naming pattern and row data."""
+    
+    def _update_parameters_in_model_bim(self, model_bim_path: Path, row: DataRow) -> bool:
+        """Update parameter values in the model.bim file."""
         try:
-            pattern = self.config.output.naming_pattern
-            folder_name = pattern.format(**row)
+            # Read the model.bim file
+            with open(model_bim_path, 'r', encoding='utf-8') as f:
+                model_data = json.load(f)
             
-            # Clean folder name (remove invalid characters)
-            invalid_chars = '<>:"/\\|?*'
-            for char in invalid_chars:
-                folder_name = folder_name.replace(char, '_')
+            # Update each parameter - expressions are under model.expressions
+            model = model_data.get("model", {})
+            expressions = model.get("expressions", [])
+            updated = False
             
-            # Add timestamp if needed
-            if '{timestamp}' in folder_name:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                folder_name = folder_name.replace('{timestamp}', timestamp)
+            for expression in expressions:
+                param_name = expression.get("name")
+                
+                if param_name in row.data:
+                    new_value = row.data[param_name]
+                    old_expression = expression.get("expression", "")
+                    
+                    # Update the expression with the new value
+                    # Format: "value" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]
+                    new_expression = f'"{new_value}" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]'
+                    expression["expression"] = new_expression
+                    
+                    log_info(f"Updated parameter '{param_name}' to '{new_value}'")
+                    updated = True
             
-            return folder_name
+            if not updated:
+                log_warning("No parameters were updated")
+                return True
+            
+            # Write the updated model.bim file
+            with open(model_bim_path, 'w', encoding='utf-8') as f:
+                json.dump(model_data, f, indent=2)
+            
+            return True
             
         except Exception as e:
-            log_error(f"Failed to generate folder name: {e}")
-            # Fallback to timestamp-based folder name
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            return f"pbip_{timestamp}"
-
-    def process_row(self, row: Dict[str, Any]) -> Path:
-        """Process a single row and generate a new PBIP folder."""
+            log_error(f"Failed to update parameters in model.bim: {str(e)}")
+            return False
+    
+    def _delete_cache_file(self, semantic_model_folder: Path) -> bool:
+        """Delete the cache.abf file from the .pbi folder within the semantic model."""
         try:
-            # Generate folder name
-            folder_name = self._generate_folder_name(row)
-            output_folder = self.output_dir / folder_name
+            pbi_folder = semantic_model_folder / ".pbi"
+            cache_file = pbi_folder / "cache.abf"
             
-            # Copy the PBIP folder
-            if not self._copy_pbip_folder(self.template_path, output_folder):
-                raise Exception("Failed to copy PBIP folder")
-            
-            # Update parameters in model.bim
-            semantic_model_folder = output_folder / f"{self.template_path.name}.SemanticModel"
-            model_bim_path = semantic_model_folder / "model.bim"
-            
-            for param in self.config.parameters:
-                if param.name in row:
-                    value = row[param.name]
-                    
-                    # Type conversion if needed
-                    if param.type == "integer":
-                        try:
-                            value = int(value)
-                        except (ValueError, TypeError):
-                            log_error(f"Failed to convert {param.name} to integer: {value}")
-                            continue
-                    elif param.type == "float":
-                        try:
-                            value = float(value)
-                        except (ValueError, TypeError):
-                            log_error(f"Failed to convert {param.name} to float: {value}")
-                            continue
-                    elif param.type == "boolean":
-                        if isinstance(value, str):
-                            value = value.lower() in ('true', '1', 'yes', 'on')
-                    
-                    # Update the parameter in model.bim
-                    if not self._update_parameter_in_model_bim(model_bim_path, param.name, value):
-                        log_error(f"Failed to update parameter {param.name}")
-            
-            log_info(f"Generated PBIP folder: {folder_name}")
-            return output_folder
+            if cache_file.exists():
+                cache_file.unlink()
+                log_info(f"Deleted cache.abf file: {cache_file}")
+                return True
+            else:
+                log_warning(f"cache.abf file not found: {cache_file}")
+                return True
             
         except Exception as e:
-            log_error(f"Failed to process row: {e}")
-            raise
+            log_error(f"Failed to delete cache.abf file: {str(e)}")
+            return False
+    
+    def _rename_internal_files_and_folders(self, output_folder: Path, report_name: str):
+        """Rename all internal files/folders and references from Example_PBIP to report_name."""
+        try:
+            # Rename .pbip file
+            old_pbip = output_folder / "Example_PBIP.pbip"
+            new_pbip = output_folder / f"{report_name}.pbip"
+            if old_pbip.exists():
+                old_pbip.rename(new_pbip)
+            
+            # Rename .Report folder
+            old_report = output_folder / "Example_PBIP.Report"
+            new_report = output_folder / f"{report_name}.Report"
+            if old_report.exists():
+                old_report.rename(new_report)
+            
+            # Rename .SemanticModel folder
+            old_semantic = output_folder / "Example_PBIP.SemanticModel"
+            new_semantic = output_folder / f"{report_name}.SemanticModel"
+            if old_semantic.exists():
+                old_semantic.rename(new_semantic)
+            
+            # Update references in the .pbip file
+            if new_pbip.exists():
+                with open(new_pbip, 'r', encoding='utf-8') as f:
+                    pbip_data = f.read()
+                pbip_data = pbip_data.replace("Example_PBIP", report_name)
+                with open(new_pbip, 'w', encoding='utf-8') as f:
+                    f.write(pbip_data)
+        except Exception as e:
+            log_error(f"Failed to rename internal files/folders: {str(e)}")
 
-    def process_all(self, data: List[Dict[str, Any]]) -> List[Path]:
-        """Process all rows from the CSV and generate PBIP folders."""
-        generated_folders = []
-        
-        for i, row in enumerate(data, 1):
-            try:
-                output_folder = self.process_row(row)
-                generated_folders.append(output_folder)
-                log_info(f"Processed row {i}/{len(data)}: {output_folder.name}")
-            except Exception as e:
-                log_error(f"Failed to process row {i}: {e}")
-                continue
-        
-        return generated_folders
-
-    def validate_parameters(self, row: Dict[str, Any]) -> List[str]:
-        """Validate that all required parameters are present in the row."""
-        missing_params = []
-        
-        for param in self.config.parameters:
-            if param.name not in row:
-                missing_params.append(param.name)
-        
-        return missing_params
-
-    def get_parameter_summary(self, row: Dict[str, Any]) -> Dict[str, Any]:
-        """Get a summary of parameter changes for a row."""
-        summary = {}
-        
-        for param in self.config.parameters:
-            if param.name in row:
-                summary[param.name] = {
-                    'type': param.type,
-                    'value': row[param.name]
-                }
-        
-        return summary 
+    def _replace_references_in_files(self, folder: Path, old: str, new: str):
+        """Recursively replace all occurrences of old with new in all text files in the folder."""
+        for path in folder.rglob('*'):
+            if path.is_file():
+                try:
+                    # Only process text files
+                    with open(path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    if old in content:
+                        content = content.replace(old, new)
+                        with open(path, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                except Exception as e:
+                    log_warning(f"Failed to update references in {path}: {str(e)}") 
