@@ -1,5 +1,5 @@
 # PBIP Template Automation - PowerShell Installer
-# This script downloads, installs, and launches the PBIP Template Automation tool
+# This script downloads, installs, and sets up the PBIP Template Automation tool
 
 Write-Host "Installing PBIP Template Automation..." -ForegroundColor Green
 
@@ -21,26 +21,9 @@ try {
     exit 1
 }
 
-# Ask user for installation directory
-Write-Host "Where would you like to install PBIP Template Automation?" -ForegroundColor Yellow
-Write-Host "Press Enter for default location (current directory)" -ForegroundColor Gray
-$installDir = Read-Host "Installation directory (or press Enter for default)"
-
-if ([string]::IsNullOrWhiteSpace($installDir)) {
-    $installDir = Get-Location
-    Write-Host "Using current directory: $installDir" -ForegroundColor Green
-} else {
-    if (-not (Test-Path $installDir)) {
-        try {
-            New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-            Write-Host "Created directory: $installDir" -ForegroundColor Green
-        } catch {
-            Write-Host "Failed to create directory: $installDir" -ForegroundColor Red
-            exit 1
-        }
-    }
-    Set-Location $installDir
-}
+# Use current directory for installation
+$installDir = Get-Location
+Write-Host "Installing to: $installDir" -ForegroundColor Green
 
 # Set the repository URL
 $repoUrl = "https://github.com/George-Nizor/_PBI_Template_Automation.git"
@@ -145,13 +128,18 @@ Write-Host "Installing package..." -ForegroundColor Yellow
 pip install -e .
 
 # Verify installation
-Write-Host "Installation complete!" -ForegroundColor Green
-Write-Host "PBIP Template Automation is ready to use!" -ForegroundColor Green
-Write-Host "Installation location: $(Get-Location)" -ForegroundColor Cyan
+Write-Host "✅ Installation complete!" -ForegroundColor Green
+Write-Host "🎉 PBIP Template Automation is ready to use!" -ForegroundColor Green
+Write-Host "📁 Installation location: $(Get-Location)" -ForegroundColor Cyan
 Write-Host ""
 
-# Launch the CLI in interactive mode
-Write-Host "Launching PBIP Template Automation in interactive mode..." -ForegroundColor Cyan
+# Show launch instructions
+Write-Host "🚀 To launch PBIP Template Automation, run:" -ForegroundColor Yellow
+Write-Host "   cd $(Get-Location)" -ForegroundColor Cyan
+Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
+Write-Host "   pbi-automation launch" -ForegroundColor Cyan
 Write-Host ""
-
-pbi-automation launch 
+Write-Host "💡 Or use the one-liner:" -ForegroundColor Yellow
+Write-Host "   cd $(Get-Location); .venv\Scripts\activate; pbi-automation launch" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "✨ Happy automating!" -ForegroundColor Green 

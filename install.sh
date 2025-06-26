@@ -1,6 +1,6 @@
 #!/bin/bash
 # PBIP Template Automation - Bash Installer
-# This script downloads, installs, and launches the PBIP Template Automation tool
+# This script downloads, installs, and sets up the PBIP Template Automation tool
 
 echo -e "\033[32mInstalling PBIP Template Automation...\033[0m"
 
@@ -27,21 +27,9 @@ else
     exit 1
 fi
 
-# Ask user for installation directory
-echo -e "\033[33mWhere would you like to install PBIP Template Automation?\033[0m"
-echo -e "\033[90mPress Enter for default location (current directory)\033[0m"
-read -p "Installation directory (or press Enter for default): " install_dir
-
-if [ -z "$install_dir" ]; then
-    install_dir=$(pwd)
-    echo -e "\033[32mUsing current directory: $install_dir\033[0m"
-else
-    if [ ! -d "$install_dir" ]; then
-        mkdir -p "$install_dir"
-        echo -e "\033[32mCreated directory: $install_dir\033[0m"
-    fi
-    cd "$install_dir"
-fi
+# Use current directory for installation
+install_dir=$(pwd)
+echo -e "\033[32mInstalling to: $install_dir\033[0m"
 
 # Set the repository URL
 repo_url="https://github.com/George-Nizor/_PBI_Template_Automation.git"
@@ -131,13 +119,18 @@ echo -e "\033[33mInstalling package...\033[0m"
 pip install -e .
 
 # Verify installation
-echo -e "\033[32mInstallation complete!\033[0m"
-echo -e "\033[32mPBIP Template Automation is ready to use!\033[0m"
-echo -e "\033[36mInstallation location: $(pwd)\033[0m"
+echo -e "\033[32m✅ Installation complete!\033[0m"
+echo -e "\033[32m🎉 PBIP Template Automation is ready to use!\033[0m"
+echo -e "\033[36m📁 Installation location: $(pwd)\033[0m"
 echo ""
 
-# Launch the CLI in interactive mode
-echo -e "\033[36mLaunching PBIP Template Automation in interactive mode...\033[0m"
+# Show launch instructions
+echo -e "\033[33m🚀 To launch PBIP Template Automation, run:\033[0m"
+echo -e "\033[36m   cd $(pwd)\033[0m"
+echo -e "\033[36m   source .venv/bin/activate\033[0m"
+echo -e "\033[36m   pbi-automation launch\033[0m"
 echo ""
-
-pbi-automation launch 
+echo -e "\033[33m💡 Or use the one-liner:\033[0m"
+echo -e "\033[36m   cd $(pwd) && source .venv/bin/activate && pbi-automation launch\033[0m"
+echo ""
+echo -e "\033[32m✨ Happy automating!\033[0m" 

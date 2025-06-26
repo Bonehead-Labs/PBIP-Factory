@@ -13,13 +13,25 @@ curl -sSL https://raw.githubusercontent.com/George-Nizor/_PBI_Template_Automatio
 ```
 
 These commands will:
-- Ask where you'd like to install (or use current directory by default)
-- Clone the repository
-- Set up a Python virtual environment
+- Install to the current directory
+- Clone the repository and set up a Python virtual environment
 - Install all dependencies
-- Launch the tool in interactive mode
+- Show you the commands to launch the tool
 
-**Note:** You can specify a custom installation directory when prompted, or press Enter to use the current directory.
+**After installation, launch the tool with:**
+```bash
+# Navigate to the installation directory
+cd _PBI_Template_Automation
+
+# Activate the virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On Mac/Linux:
+source .venv/bin/activate
+
+# Launch in interactive mode
+pbi-automation launch
+```
 
 ## 🔄 Smart Updates
 
