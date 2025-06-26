@@ -20,7 +20,7 @@ def show_splash_screen():
     ║    ██║     ██████╔╝╚██████╔╝██║     ██║     ██║  ██║███████╗ ║
     ║    ╚═╝     ╚═════╝  ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝╚══════╝ ║
     ║                                                              ║
-    ║              [bold blue]Power BI Template Automation[/bold blue]              ║
+    ║              [bold blue]PBIP-TEMPLATE-PAL[/bold blue]              ║
     ║                    [dim]Generate PBIP projects with ease[/dim]                    ║
     ║                                                              ║
     ╚══════════════════════════════════════════════════════════════╝
@@ -103,4 +103,28 @@ def show_completion_message(success_count: int, total_count: int):
         title="[bold green]Success[/bold green]",
         border_style="green"
     )
-    console.print(panel) 
+    console.print(panel)
+
+def show_interactive_header():
+    """Display interactive mode header."""
+    console.print()
+    console.print(Panel.fit(
+        "[bold cyan]🎯 Interactive Mode[/bold cyan]",
+        border_style="cyan"
+    ))
+    console.print()
+
+def show_help_menu():
+    """Display help menu for interactive mode."""
+    help_text = """
+[bold]Available Commands:[/bold]
+
+[cyan]generate[/cyan] - Start PBIP generation with interactive prompts
+[cyan]version[/cyan] - Show version information
+[cyan]help[/cyan] - Show this help menu
+[cyan]exit[/cyan] - Exit the application
+    """
+    
+    panel = Panel(help_text, title="[bold blue]Help Menu[/bold blue]", border_style="blue")
+    console.print(panel)
+    console.print() 

@@ -5,6 +5,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.panel import Panel
 from rich.table import Table
 from rich import print as rprint
+import inquirer
 
 from .core.processor import PBIPProcessor
 from .core.validator import PBIPValidator
@@ -15,26 +16,70 @@ from .utils.cli_utils import (
     show_splash_screen, show_success_message, show_error_message, 
     show_warning_message, show_info_message, create_progress_bar,
     show_generated_folders, show_config_summary, show_processing_header,
-    show_completion_message
+    show_completion_message, show_interactive_header, show_help_menu
 )
 
-app = typer.Typer()
+app = typer.Typer(name="pbip-template-pal", help="PBIP Template Automation Tool")
 console = Console()
 
 
-@app.command()
-def generate(
-    template: str = typer.Option(..., "--template", "-t", help="Path to PBIP template folder"),
-    config: str = typer.Option(..., "--config", "-c", help="Path to configuration YAML file"),
-    data: str = typer.Option(..., "--data", "-d", help="Path to CSV data file"),
-    output_dir: str = typer.Option(..., "--output-dir", "-o", help="Output directory for generated projects"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
-):
-    """Generate PBIP projects from template with parameter updates."""
-    
-    # Show splash screen
-    show_splash_screen()
-    
+def prompt_for_template() -> str:
+    """Prompt user for template path."""
+    questions = [
+        inquirer.Text('template', 
+                     message='Enter the path to your PBIP template folder',
+                     default='Example_PBIP')
+    ]
+    answers = inquirer.prompt(questions)
+    return answers['template']
+
+
+def prompt_for_config() -> str:
+    """Prompt user for config path."""
+    questions = [
+        inquirer.Text('config', 
+                     message='Enter the path to your configuration YAML file',
+                     default='examples/configs/pbip_config.yaml')
+    ]
+    answers = inquirer.prompt(questions)
+    return answers['config']
+
+
+def prompt_for_data() -> str:
+    """Prompt user for data path."""
+    questions = [
+        inquirer.Text('data', 
+                     message='Enter the path to your CSV data file',
+                     default='examples/data/pbip_data.csv')
+    ]
+    answers = inquirer.prompt(questions)
+    return answers['data']
+
+
+def prompt_for_output() -> str:
+    """Prompt user for output directory."""
+    questions = [
+        inquirer.Text('output', 
+                     message='Enter the output directory for generated projects',
+                     default='output')
+    ]
+    answers = inquirer.prompt(questions)
+    return answers['output']
+
+
+def prompt_for_verbose() -> bool:
+    """Prompt user for verbose mode."""
+    questions = [
+        inquirer.Confirm('verbose', 
+                        message='Enable verbose logging?',
+                        default=False)
+    ]
+    answers = inquirer.prompt(questions)
+    return answers['verbose']
+
+
+def run_generation(template: str, config: str, data: str, output_dir: str, verbose: bool = False):
+    """Run the PBIP generation process."""
     try:
         # Setup logging
         setup_logging(verbose=verbose)
@@ -43,7 +88,7 @@ def generate(
         config_path = Path(config)
         if not config_path.exists():
             show_error_message(f"Configuration file not found: {config}")
-            raise typer.Exit(1)
+            return False
         
         config_obj = Config.from_yaml(config_path)
         show_success_message(f"Loaded config: {config}")
@@ -52,7 +97,7 @@ def generate(
         data_path = Path(data)
         if not data_path.exists():
             show_error_message(f"Data file not found: {data}")
-            raise typer.Exit(1)
+            return False
         
         data_rows = load_data_from_csv(data_path)
         show_success_message(f"Loaded data: {len(data_rows)} rows")
@@ -61,12 +106,12 @@ def generate(
         template_path = Path(template)
         if not template_path.exists():
             show_error_message(f"Template not found: {template}")
-            raise typer.Exit(1)
+            return False
         
         validator = PBIPValidator()
         if not validator.validate_template(template_path):
             show_error_message(f"Invalid template: {template}")
-            raise typer.Exit(1)
+            return False
         
         show_success_message(f"Validated PBIP template: {template}")
         
@@ -99,12 +144,101 @@ def generate(
         show_generated_folders(generated_folders)
         
         log_success(f"Successfully generated {success_count} PBIP projects in {output_dir}")
+        return True
         
     except Exception as e:
         show_error_message(f"An error occurred: {str(e)}")
         if verbose:
             console.print_exception()
+        return False
+
+
+@app.command()
+def generate(
+    template: str = typer.Option(..., "--template", "-t", help="Path to PBIP template folder"),
+    config: str = typer.Option(..., "--config", "-c", help="Path to configuration YAML file"),
+    data: str = typer.Option(..., "--data", "-d", help="Path to CSV data file"),
+    output_dir: str = typer.Option(..., "--output-dir", "-o", help="Output directory for generated projects"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
+):
+    """Generate PBIP projects from template with parameter updates."""
+    
+    # Show splash screen
+    show_splash_screen()
+    
+    success = run_generation(template, config, data, output_dir, verbose)
+    
+    if not success:
         raise typer.Exit(1)
+
+
+@app.command()
+def launch():
+    """Launch PBIP-TEMPLATE-PAL in interactive mode."""
+    show_splash_screen()
+    show_interactive_header()
+    show_help_menu()
+    
+    while True:
+        try:
+            questions = [
+                inquirer.List('command',
+                            message='What would you like to do?',
+                            choices=['generate', 'version', 'help', 'exit'])
+            ]
+            answers = inquirer.prompt(questions)
+            
+            if not answers:
+                continue
+                
+            command = answers['command']
+            
+            if command == 'exit':
+                console.print("[bold green]Goodbye! 👋[/bold green]")
+                break
+                
+            elif command == 'version':
+                console.print("[bold blue]Version:[/bold blue] 1.0.0")
+                console.print("[bold blue]PBIP-TEMPLATE-PAL[/bold blue]")
+                console.print()
+                
+            elif command == 'help':
+                show_help_menu()
+                
+            elif command == 'generate':
+                console.print()
+                console.print("[bold cyan]Let's generate some PBIP projects! 🚀[/bold cyan]")
+                console.print()
+                
+                # Prompt for all arguments
+                template = prompt_for_template()
+                config = prompt_for_config()
+                data = prompt_for_data()
+                output_dir = prompt_for_output()
+                verbose = prompt_for_verbose()
+                
+                if all([template, config, data, output_dir]):
+                    console.print()
+                    success = run_generation(template, config, data, output_dir, verbose)
+                    
+                    if success:
+                        console.print()
+                        console.print("[bold green]Generation completed successfully! 🎉[/bold green]")
+                    else:
+                        console.print()
+                        console.print("[bold red]Generation failed. Please check the errors above.[/bold red]")
+                else:
+                    show_error_message("All arguments are required. Please try again.")
+                
+                console.print()
+                show_help_menu()
+                
+        except KeyboardInterrupt:
+            console.print("\n[bold green]Goodbye! 👋[/bold green]")
+            break
+        except Exception as e:
+            show_error_message(f"An error occurred: {str(e)}")
+            console.print()
 
 
 @app.command()
@@ -112,8 +246,13 @@ def version():
     """Show version information."""
     show_splash_screen()
     console.print("[bold blue]Version:[/bold blue] 1.0.0")
-    console.print("[bold blue]Power BI Template Automation Tool[/bold blue]")
+    console.print("[bold blue]PBIP-TEMPLATE-PAL[/bold blue]")
+
+
+def main():
+    """Main entry point for the application."""
+    app()
 
 
 if __name__ == "__main__":
-    app() 
+    main() 
