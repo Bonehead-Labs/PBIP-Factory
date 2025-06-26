@@ -26,6 +26,22 @@ else
     exit 1
 fi
 
+# Ask user for installation directory
+echo "Where would you like to install PBIP Template Automation?"
+echo "Press Enter for default location (current directory)"
+read -p "Installation directory (or press Enter for default): " install_dir
+
+if [ -z "$install_dir" ]; then
+    install_dir=$(pwd)
+    echo "Using current directory: $install_dir"
+else
+    if [ ! -d "$install_dir" ]; then
+        mkdir -p "$install_dir"
+        echo "Created directory: $install_dir"
+    fi
+    cd "$install_dir"
+fi
+
 # Set the repository URL
 REPO_URL="https://github.com/George-Nizor/_PBI_Template_Automation.git"
 REPO_NAME="_PBI_Template_Automation"
@@ -61,6 +77,7 @@ pip install -e .
 # Verify installation
 echo "✅ Installation complete!"
 echo "🎉 PBIP Template Automation is ready to use!"
+echo "Installation location: $(pwd)"
 echo ""
 
 # Launch the CLI in interactive mode

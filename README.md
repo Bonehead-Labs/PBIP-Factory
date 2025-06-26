@@ -13,10 +13,13 @@ curl -sSL https://raw.githubusercontent.com/George-Nizor/_PBI_Template_Automatio
 ```
 
 These commands will:
+- Ask where you'd like to install (or use current directory by default)
 - Clone the repository
 - Set up a Python virtual environment
 - Install all dependencies
 - Launch the tool in interactive mode
+
+**Note:** You can specify a custom installation directory when prompted, or press Enter to use the current directory.
 
 ---
 
@@ -167,38 +170,4 @@ pytest
 
 ### Code Formatting
 
-```bash
-black src/ tests/
-isort src/ tests/
 ```
-
-## Editable Install: What You Need to Know
-
-- **Editable install** (`pip install -e .`) links your source code to your Python environment. Any code changes are immediately reflected in the CLI.
-- If you move, rename, or delete the `src/pbi_automation` folder, the CLI will break.
-- If you change the CLI entry point in `pyproject.toml`, re-run `pip install -e .`.
-- If you uninstall the package or delete your virtual environment, the CLI will be removed.
-- Always activate your virtual environment before running or developing.
-- Re-run `pip install -e .` if you or a teammate change dependencies or entry points.
-
-## Future Enhancements
-
-- **Configurable template names**: Make the default template name (`Example_PBIP`) configurable via CLI or config file
-- **Parallel processing**: Support for processing large datasets in parallel
-- **Log file configuration**: Configurable log file paths and rotation
-- **Enhanced validation**: More comprehensive template and data validation
-
-## Troubleshooting
-
-- If you see `ModuleNotFoundError` or missing CLI commands, ensure your virtual environment is activated and you have run `pip install -e .`.
-- If you change the project structure or dependencies, re-run the install command.
-- For detailed usage instructions, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
-
-## Requirements
-
-- Python 3.9+
-- Power BI Desktop (for opening generated files)
-
-## License
-
-MIT License - see LICENSE file for details. 

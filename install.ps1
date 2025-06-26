@@ -21,6 +21,27 @@ try {
     exit 1
 }
 
+# Ask user for installation directory
+Write-Host "Where would you like to install PBIP Template Automation?" -ForegroundColor Yellow
+Write-Host "Press Enter for default location (current directory)" -ForegroundColor Gray
+$installDir = Read-Host "Installation directory (or press Enter for default)"
+
+if ([string]::IsNullOrWhiteSpace($installDir)) {
+    $installDir = Get-Location
+    Write-Host "Using current directory: $installDir" -ForegroundColor Green
+} else {
+    if (-not (Test-Path $installDir)) {
+        try {
+            New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+            Write-Host "Created directory: $installDir" -ForegroundColor Green
+        } catch {
+            Write-Host "Failed to create directory: $installDir" -ForegroundColor Red
+            exit 1
+        }
+    }
+    Set-Location $installDir
+}
+
 # Set the repository URL
 $repoUrl = "https://github.com/George-Nizor/_PBI_Template_Automation.git"
 $repoName = "_PBI_Template_Automation"
@@ -56,6 +77,7 @@ pip install -e .
 # Verify installation
 Write-Host "Installation complete!" -ForegroundColor Green
 Write-Host "PBIP Template Automation is ready to use!" -ForegroundColor Green
+Write-Host "Installation location: $(Get-Location)" -ForegroundColor Cyan
 Write-Host ""
 
 # Launch the CLI in interactive mode
