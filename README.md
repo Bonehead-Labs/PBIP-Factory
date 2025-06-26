@@ -20,7 +20,7 @@ These commands will:
 
 ---
 
-# Power BI Template Automation
+## Overview
 
 A Python tool for automating Power BI template (PBIP) generation with parameter updates. This tool takes a master PBIP template and generates multiple independent Power BI projects by updating parameters based on CSV data.
 
@@ -31,28 +31,51 @@ A Python tool for automating Power BI template (PBIP) generation with parameter 
 - **Unique project names**: Automatically rename all internal references for unique, publishable projects
 - **Clean output**: Remove cache files for proper data loading
 - **Simple configuration**: YAML-based configuration with CSV data input
+- **Interactive CLI**: User-friendly command-line interface with validation
+- **Robust error handling**: Comprehensive error reporting and recovery
 
-## Quick Start
+## Quick Start: Self-Contained Setup
 
-### Basic Command
-python -m src.pbi_automation.cli generate --template Example_PBIP --config examples/configs/pbip_config.yaml --data examples/data/pbip_data.csv --output-dir output --verbose
+Follow these steps to get started on any machine with Python 3.9+:
 
-### 1. Install Dependencies
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/George-Nizor/_PBI_Template_Automation.git
+   cd _PBI_Template_Automation
+   ```
 
+2. **Create and activate a virtual environment:**
+   ```sh
+   python -m venv .venv
+   # On Windows:
+   .venv\Scripts\activate
+   # On Mac/Linux:
+   source .venv/bin/activate
+   ```
+
+3. **Install the project in editable mode:**
+   ```sh
+   pip install -e .
+   ```
+   This will install all dependencies and make the `pbi-automation` CLI available in your environment.
+
+4. **Run the CLI:**
+   ```sh
+   pbi-automation --help
+   pbi-automation launch
+   pbi-automation generate ...
+   ```
+
+## Usage
+
+### Interactive Mode
 ```bash
-pip install -r requirements.txt
+pbi-automation launch
 ```
 
-### 2. Prepare Your Files
-
-- **Master Template**: A PBIP folder (e.g., `Example_PBIP/`) with parameters defined in the semantic model
-- **Configuration**: YAML file defining parameters to update
-- **Data**: CSV file with values for each generated project
-
-### 3. Run the Tool
-
+### Command Line Mode
 ```bash
-python -m src.pbi_automation.cli generate \
+pbi-automation generate \
     --template Example_PBIP \
     --config examples/configs/pbip_config.yaml \
     --data examples/data/pbip_data.csv \
@@ -128,18 +151,6 @@ Each generated project is:
 - **Ready for publishing** to Power BI Service
 - **Parameterized** with updated values from CSV data
 
-## Requirements
-
-- Python 3.9+
-- Power BI Desktop (for opening generated files)
-
-## Dependencies
-
-- `typer`: CLI framework
-- `rich`: Terminal output formatting
-- `pyyaml`: YAML configuration parsing
-- `structlog`: Structured logging
-
 ## Development
 
 ### Install Development Dependencies
@@ -161,44 +172,6 @@ black src/ tests/
 isort src/ tests/
 ```
 
-## License
-
-MIT License - see LICENSE file for details.
-
-## Quick Start: Self-Contained Setup
-
-Follow these steps to get started on any machine with Python 3.9+:
-
-1. **Clone the repository:**
-   ```sh
-   git clone <repo-url>
-   cd _PBI_Template_Automation
-   ```
-
-2. **Create and activate a virtual environment:**
-   ```sh
-   python -m venv .venv
-   # On Windows:
-   .venv\Scripts\activate
-   # On Mac/Linux:
-   source .venv/bin/activate
-   ```
-
-3. **Install the project in editable mode:**
-   ```sh
-   pip install -e .
-   ```
-   This will install all dependencies and make the `pbi-automation` CLI available in your environment.
-
-4. **Run the CLI:**
-   ```sh
-   pbi-automation --help
-   pbi-automation launch
-   pbi-automation generate ...
-   ```
-
----
-
 ## Editable Install: What You Need to Know
 
 - **Editable install** (`pip install -e .`) links your source code to your Python environment. Any code changes are immediately reflected in the CLI.
@@ -208,23 +181,24 @@ Follow these steps to get started on any machine with Python 3.9+:
 - Always activate your virtual environment before running or developing.
 - Re-run `pip install -e .` if you or a teammate change dependencies or entry points.
 
----
+## Future Enhancements
 
-## Onboarding for New Developers
-
-1. **Clone the repo and set up a virtual environment as above.**
-2. **Install in editable mode:** `pip install -e .`
-3. **Run the CLI:** `pbi-automation launch` or `pbi-automation generate ...`
-4. **Make enhancements:** All code changes are instantly available in your CLI.
-5. **If you add dependencies:** Add them to `pyproject.toml` and re-run `pip install -e .`.
-
----
+- **Configurable template names**: Make the default template name (`Example_PBIP`) configurable via CLI or config file
+- **Parallel processing**: Support for processing large datasets in parallel
+- **Log file configuration**: Configurable log file paths and rotation
+- **Enhanced validation**: More comprehensive template and data validation
 
 ## Troubleshooting
 
 - If you see `ModuleNotFoundError` or missing CLI commands, ensure your virtual environment is activated and you have run `pip install -e .`.
 - If you change the project structure or dependencies, re-run the install command.
+- For detailed usage instructions, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
----
+## Requirements
 
-For more details, see the [USAGE_GUIDE.md](USAGE_GUIDE.md). 
+- Python 3.9+
+- Power BI Desktop (for opening generated files)
+
+## License
+
+MIT License - see LICENSE file for details. 
