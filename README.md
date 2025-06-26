@@ -141,4 +141,68 @@ isort src/ tests/
 
 ## License
 
-MIT License - see LICENSE file for details. 
+MIT License - see LICENSE file for details.
+
+## Quick Start: Self-Contained Setup
+
+Follow these steps to get started on any machine with Python 3.9+:
+
+1. **Clone the repository:**
+   ```sh
+   git clone <repo-url>
+   cd _PBI_Template_Automation
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```sh
+   python -m venv .venv
+   # On Windows:
+   .venv\Scripts\activate
+   # On Mac/Linux:
+   source .venv/bin/activate
+   ```
+
+3. **Install the project in editable mode:**
+   ```sh
+   pip install -e .
+   ```
+   This will install all dependencies and make the `pbi-automation` CLI available in your environment.
+
+4. **Run the CLI:**
+   ```sh
+   pbi-automation --help
+   pbi-automation launch
+   pbi-automation generate ...
+   ```
+
+---
+
+## Editable Install: What You Need to Know
+
+- **Editable install** (`pip install -e .`) links your source code to your Python environment. Any code changes are immediately reflected in the CLI.
+- If you move, rename, or delete the `src/pbi_automation` folder, the CLI will break.
+- If you change the CLI entry point in `pyproject.toml`, re-run `pip install -e .`.
+- If you uninstall the package or delete your virtual environment, the CLI will be removed.
+- Always activate your virtual environment before running or developing.
+- Re-run `pip install -e .` if you or a teammate change dependencies or entry points.
+
+---
+
+## Onboarding for New Developers
+
+1. **Clone the repo and set up a virtual environment as above.**
+2. **Install in editable mode:** `pip install -e .`
+3. **Run the CLI:** `pbi-automation launch` or `pbi-automation generate ...`
+4. **Make enhancements:** All code changes are instantly available in your CLI.
+5. **If you add dependencies:** Add them to `pyproject.toml` and re-run `pip install -e .`.
+
+---
+
+## Troubleshooting
+
+- If you see `ModuleNotFoundError` or missing CLI commands, ensure your virtual environment is activated and you have run `pip install -e .`.
+- If you change the project structure or dependencies, re-run the install command.
+
+---
+
+For more details, see the [USAGE_GUIDE.md](USAGE_GUIDE.md). 
