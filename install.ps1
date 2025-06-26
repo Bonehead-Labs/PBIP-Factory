@@ -135,11 +135,11 @@ Write-Host ""
 
 # Show launch instructions
 Write-Host "🚀 To launch PBIP Template Automation, run:" -ForegroundColor Yellow
-Write-Host "   cd $(Get-Location)" -ForegroundColor Cyan
+Write-Host "   cd $repoName" -ForegroundColor Cyan
 Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
 Write-Host "   pbi-automation launch" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "💡 Or use the one-liner:" -ForegroundColor Yellow
-Write-Host "   cd $(Get-Location); .venv\Scripts\activate; pbi-automation launch" -ForegroundColor Cyan
+Write-Host "   cd $repoName; .venv\Scripts\activate; pbi-automation launch" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "✨ Happy automating!" -ForegroundColor Green 

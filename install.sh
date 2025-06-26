@@ -126,11 +126,11 @@ echo ""
 
 # Show launch instructions
 echo -e "\033[33m🚀 To launch PBIP Template Automation, run:\033[0m"
-echo -e "\033[36m   cd $(pwd)\033[0m"
+echo -e "\033[36m   cd $repo_name\033[0m"
 echo -e "\033[36m   source .venv/bin/activate\033[0m"
 echo -e "\033[36m   pbi-automation launch\033[0m"
 echo ""
 echo -e "\033[33m💡 Or use the one-liner:\033[0m"
-echo -e "\033[36m   cd $(pwd) && source .venv/bin/activate && pbi-automation launch\033[0m"
+echo -e "\033[36m   cd $repo_name && source .venv/bin/activate && pbi-automation launch\033[0m"
 echo ""
 echo -e "\033[32m✨ Happy automating!\033[0m" 
