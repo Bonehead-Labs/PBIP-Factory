@@ -43,7 +43,7 @@ dev = [
 ]
 
 [project.scripts]
-pbi-automation = "src.pbi_automation.cli:app"
+pbi-automation = "pbi_automation.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/your-org/pbi-template-automation"
