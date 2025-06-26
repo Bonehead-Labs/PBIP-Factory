@@ -40,6 +40,9 @@ class PBIPValidator:
             log_info(f"Validated PBIP template: {template_path}")
             return True
             
-        except Exception as e:
+        except (OSError, ValueError) as e:
             log_error(f"Template validation failed: {str(e)}")
-            return False 
+            return False
+        except Exception as e:
+            log_error(f"Unexpected error during template validation: {str(e)}")
+            raise 

@@ -3,10 +3,12 @@ from pathlib import Path
 import tempfile
 import json
 import shutil
+import io
 
 from src.pbi_automation.core.processor import PBIPProcessor
 from src.pbi_automation.models.config import Config
-from src.pbi_automation.models.data import DataRow
+from src.pbi_automation.models.data import DataRow, load_data_from_csv
+from src.pbi_automation.core.validator import PBIPValidator
 
 
 @pytest.fixture
@@ -194,4 +196,36 @@ def test_data_row_folder_name():
     
     # Test fallback to Name_Owner
     row = DataRow({"Name": "Test", "Owner": "Team"})
-    assert row.get_folder_name() == "Test_Team" 
+    assert row.get_folder_name() == "Test_Team"
+
+
+def test_validator_valid_template(sample_template):
+    validator = PBIPValidator()
+    assert validator.validate_template(sample_template) is True
+
+
+def test_validator_invalid_template(temp_dir):
+    validator = PBIPValidator()
+    # Directory exists but missing required files
+    bad_template = temp_dir / "BadTemplate"
+    bad_template.mkdir()
+    assert validator.validate_template(bad_template) is False
+
+
+def test_load_data_from_csv_valid(tmp_path):
+    csv_content = "Name,Owner,Report_Name\nA,Team1,ReportA\nB,Team2,ReportB\n"
+    csv_file = tmp_path / "test.csv"
+    csv_file.write_text(csv_content)
+    rows = load_data_from_csv(csv_file)
+    assert len(rows) == 2
+    assert rows[0].get_folder_name() == "ReportA"
+    assert rows[1].get_folder_name() == "ReportB"
+
+
+def test_load_data_from_csv_malformed(tmp_path):
+    # Second row has different columns
+    csv_content = "Name,Owner,Report_Name\nA,Team1,ReportA\nB,Team2\n"
+    csv_file = tmp_path / "bad.csv"
+    csv_file.write_text(csv_content)
+    with pytest.raises(RuntimeError):
+        load_data_from_csv(csv_file) 

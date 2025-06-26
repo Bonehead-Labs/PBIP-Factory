@@ -7,12 +7,15 @@ from ..utils.cli_utils import show_success_message, show_error_message, show_war
 from ..models.config import Config
 from ..models.data import DataRow
 
+# TODO: Make this configurable via CLI/config
+DEFAULT_TEMPLATE_NAME = "Example_PBIP"
 
 class PBIPProcessor:
     """Process PBIP templates to generate new projects."""
     
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, template_name: str = DEFAULT_TEMPLATE_NAME):
         self.config = config
+        self.template_name = template_name
     
     def process_data(self, template_path: Path, data: List[DataRow], output_dir: Path) -> int:
         """Process all data rows and generate PBIP projects."""
@@ -28,8 +31,11 @@ class PBIPProcessor:
                 else:
                     show_error_message(f"Failed to process row {i}: Failed to generate PBIP")
                     
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 show_error_message(f"Failed to process row {i}: {str(e)}")
+            except Exception as e:
+                show_error_message(f"Unexpected error in row {i}: {str(e)}")
+                raise
         
         return success_count
     
@@ -49,7 +55,7 @@ class PBIPProcessor:
             self._rename_internal_files_and_folders(output_folder, report_name)
             
             # Recursively replace all Example_PBIP references in all files
-            self._replace_references_in_files(output_folder, "Example_PBIP", report_name)
+            self._replace_references_in_files(output_folder, self.template_name, report_name)
             
             # Update parameters in model.bim
             semantic_model_folder = output_folder / f"{report_name}.SemanticModel"
@@ -65,9 +71,12 @@ class PBIPProcessor:
             
             return True
             
-        except Exception as e:
+        except (OSError, ValueError) as e:
             show_error_message(f"Failed to process row: {str(e)}")
             return False
+        except Exception as e:
+            show_error_message(f"Unexpected error in process_row: {str(e)}")
+            raise
     
     def _copy_pbip_folder(self, source_path: Path, dest_path: Path) -> bool:
         """Copy the entire PBIP folder to a new location."""
@@ -80,9 +89,12 @@ class PBIPProcessor:
             log_info(f"Copied PBIP folder to: {dest_path}")
             return True
             
-        except Exception as e:
+        except (OSError, shutil.Error) as e:
             show_error_message(f"Failed to copy PBIP folder: {str(e)}")
             return False
+        except Exception as e:
+            show_error_message(f"Unexpected error copying PBIP folder: {str(e)}")
+            raise
     
     def _update_parameters_in_model_bim(self, model_bim_path: Path, row: DataRow) -> bool:
         """Update parameter values in the model.bim file."""
@@ -121,9 +133,12 @@ class PBIPProcessor:
             
             return True
             
-        except Exception as e:
+        except (OSError, json.JSONDecodeError) as e:
             show_error_message(f"Failed to update parameters in model.bim: {str(e)}")
             return False
+        except Exception as e:
+            show_error_message(f"Unexpected error updating model.bim: {str(e)}")
+            raise
     
     def _delete_cache_file(self, semantic_model_folder: Path) -> bool:
         """Delete the cache.abf file from the .pbi folder within the semantic model."""
@@ -139,27 +154,30 @@ class PBIPProcessor:
                 show_warning_message(f"cache.abf file not found: {cache_file}")
                 return True
             
-        except Exception as e:
+        except OSError as e:
             show_error_message(f"Failed to delete cache.abf file: {str(e)}")
             return False
+        except Exception as e:
+            show_error_message(f"Unexpected error deleting cache.abf file: {str(e)}")
+            raise
     
     def _rename_internal_files_and_folders(self, output_folder: Path, report_name: str):
         """Rename all internal files/folders and references from Example_PBIP to report_name."""
         try:
             # Rename .pbip file
-            old_pbip = output_folder / "Example_PBIP.pbip"
+            old_pbip = output_folder / f"{self.template_name}.pbip"
             new_pbip = output_folder / f"{report_name}.pbip"
             if old_pbip.exists():
                 old_pbip.rename(new_pbip)
             
             # Rename .Report folder
-            old_report = output_folder / "Example_PBIP.Report"
+            old_report = output_folder / f"{self.template_name}.Report"
             new_report = output_folder / f"{report_name}.Report"
             if old_report.exists():
                 old_report.rename(new_report)
             
             # Rename .SemanticModel folder
-            old_semantic = output_folder / "Example_PBIP.SemanticModel"
+            old_semantic = output_folder / f"{self.template_name}.SemanticModel"
             new_semantic = output_folder / f"{report_name}.SemanticModel"
             if old_semantic.exists():
                 old_semantic.rename(new_semantic)
@@ -168,11 +186,14 @@ class PBIPProcessor:
             if new_pbip.exists():
                 with open(new_pbip, 'r', encoding='utf-8') as f:
                     pbip_data = f.read()
-                pbip_data = pbip_data.replace("Example_PBIP", report_name)
+                pbip_data = pbip_data.replace(self.template_name, report_name)
                 with open(new_pbip, 'w', encoding='utf-8') as f:
                     f.write(pbip_data)
-        except Exception as e:
+        except (OSError, ValueError) as e:
             show_error_message(f"Failed to rename internal files/folders: {str(e)}")
+        except Exception as e:
+            show_error_message(f"Unexpected error renaming files/folders: {str(e)}")
+            raise
 
     def _replace_references_in_files(self, folder: Path, old: str, new: str):
         """Recursively replace all occurrences of old with new in all text files in the folder."""
@@ -186,5 +207,8 @@ class PBIPProcessor:
                         content = content.replace(old, new)
                         with open(path, 'w', encoding='utf-8') as f:
                             f.write(content)
+                except (OSError, UnicodeDecodeError) as e:
+                    show_warning_message(f"Failed to update references in {path}: {str(e)}")
                 except Exception as e:
-                    show_warning_message(f"Failed to update references in {path}: {str(e)}") 
+                    show_warning_message(f"Unexpected error updating references in {path}: {str(e)}")
+                    raise 

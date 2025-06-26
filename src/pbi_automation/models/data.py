@@ -30,20 +30,20 @@ class DataRow:
 def load_data_from_csv(csv_path: Path) -> List[DataRow]:
     """Load data from a CSV file and return a list of DataRow objects."""
     data_rows = []
-    
-    with open(csv_path, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        
-        # Validate that all rows have the same columns
-        first_row = None
-        for i, row in enumerate(reader, 1):
-            if first_row is None:
-                first_row = set(row.keys())
-            else:
-                current_row = set(row.keys())
-                if current_row != first_row:
-                    raise ValueError(f"Row {i} has different columns than the first row")
-            
-            data_rows.append(DataRow(row))
-    
-    return data_rows 
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            first_row = None
+            for i, row in enumerate(reader, 1):
+                if first_row is None:
+                    first_row = set(row.keys())
+                else:
+                    current_row = set(row.keys())
+                    if current_row != first_row:
+                        raise ValueError(f"Row {i} has different columns than the first row")
+                data_rows.append(DataRow(row))
+        return data_rows
+    except (OSError, csv.Error, ValueError) as e:
+        raise RuntimeError(f"Failed to load or parse CSV: {e}")
+    except Exception as e:
+        raise 

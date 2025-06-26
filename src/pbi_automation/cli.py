@@ -24,47 +24,68 @@ console = Console()
 
 
 def prompt_for_template() -> str:
-    """Prompt user for template path."""
-    questions = [
-        inquirer.Text('template', 
-                     message='Enter the path to your PBIP template folder',
-                     default='Example_PBIP')
-    ]
-    answers = inquirer.prompt(questions)
-    return answers['template']
+    """Prompt user for template path and validate it exists."""
+    while True:
+        questions = [
+            inquirer.Text('template', 
+                         message='Enter the path to your PBIP template folder',
+                         default='Example_PBIP')
+        ]
+        answers = inquirer.prompt(questions)
+        path = answers['template']
+        if Path(path).exists() and Path(path).is_dir():
+            return path
+        else:
+            show_error_message(f"Template folder not found: {path}")
 
 
 def prompt_for_config() -> str:
-    """Prompt user for config path."""
-    questions = [
-        inquirer.Text('config', 
-                     message='Enter the path to your configuration YAML file',
-                     default='examples/configs/pbip_config.yaml')
-    ]
-    answers = inquirer.prompt(questions)
-    return answers['config']
+    """Prompt user for config path and validate it exists."""
+    while True:
+        questions = [
+            inquirer.Text('config', 
+                         message='Enter the path to your configuration YAML file',
+                         default='examples/configs/pbip_config.yaml')
+        ]
+        answers = inquirer.prompt(questions)
+        path = answers['config']
+        if Path(path).exists() and Path(path).is_file():
+            return path
+        else:
+            show_error_message(f"Configuration file not found: {path}")
 
 
 def prompt_for_data() -> str:
-    """Prompt user for data path."""
-    questions = [
-        inquirer.Text('data', 
-                     message='Enter the path to your CSV data file',
-                     default='examples/data/pbip_data.csv')
-    ]
-    answers = inquirer.prompt(questions)
-    return answers['data']
+    """Prompt user for data path and validate it exists."""
+    while True:
+        questions = [
+            inquirer.Text('data', 
+                         message='Enter the path to your CSV data file',
+                         default='examples/data/pbip_data.csv')
+        ]
+        answers = inquirer.prompt(questions)
+        path = answers['data']
+        if Path(path).exists() and Path(path).is_file():
+            return path
+        else:
+            show_error_message(f"Data file not found: {path}")
 
 
 def prompt_for_output() -> str:
-    """Prompt user for output directory."""
-    questions = [
-        inquirer.Text('output', 
-                     message='Enter the output directory for generated projects',
-                     default='output')
-    ]
-    answers = inquirer.prompt(questions)
-    return answers['output']
+    """Prompt user for output directory (create if not exists)."""
+    while True:
+        questions = [
+            inquirer.Text('output', 
+                         message='Enter the output directory for generated projects',
+                         default='output')
+        ]
+        answers = inquirer.prompt(questions)
+        path = answers['output']
+        try:
+            Path(path).mkdir(parents=True, exist_ok=True)
+            return path
+        except Exception as e:
+            show_error_message(f"Failed to create output directory: {e}")
 
 
 def prompt_for_verbose() -> bool:
@@ -81,76 +102,61 @@ def prompt_for_verbose() -> bool:
 def run_generation(template: str, config: str, data: str, output_dir: str, verbose: bool = False):
     """Run the PBIP generation process."""
     try:
-        # Setup logging
         setup_logging(verbose=verbose)
-        
-        # Load configuration
         config_path = Path(config)
         if not config_path.exists():
             show_error_message(f"Configuration file not found: {config}")
             return False
-        
-        config_obj = Config.from_yaml(config_path)
+        try:
+            config_obj = Config.from_yaml(config_path)
+        except Exception as e:
+            show_error_message(f"Failed to load configuration: {e}")
+            return False
         show_success_message(f"Loaded config: {config}")
-        
-        # Load data
         data_path = Path(data)
         if not data_path.exists():
             show_error_message(f"Data file not found: {data}")
             return False
-        
-        data_rows = load_data_from_csv(data_path)
+        try:
+            data_rows = load_data_from_csv(data_path)
+        except Exception as e:
+            show_error_message(f"Failed to load data: {e}")
+            return False
         show_success_message(f"Loaded data: {len(data_rows)} rows")
-        
-        # Validate template
         template_path = Path(template)
         if not template_path.exists():
             show_error_message(f"Template not found: {template}")
             return False
-        
         validator = PBIPValidator()
         if not validator.validate_template(template_path):
             show_error_message(f"Invalid template: {template}")
             return False
-        
         show_success_message(f"Validated PBIP template: {template}")
-        
-        # Setup output directory
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
         show_success_message(f"Output directory: {output_dir}")
-        
-        # Show configuration summary
         show_config_summary(config, data, template, output_dir)
-        
-        # Show processing header
         show_processing_header()
-        
-        # Process data with progress bar
         processor = PBIPProcessor(config_obj)
-        
         with create_progress_bar("Generating PBIP projects...") as progress:
             task = progress.add_task("Processing...", total=len(data_rows))
-            
             success_count = processor.process_data(template_path, data_rows, output_path)
-            
             progress.update(task, completed=len(data_rows))
-        
-        # Show completion message
         show_completion_message(success_count, len(data_rows))
-        
-        # Show generated folders
         generated_folders = [row.get_folder_name() for row in data_rows]
         show_generated_folders(generated_folders)
-        
         log_success(f"Successfully generated {success_count} PBIP projects in {output_dir}")
         return True
-        
-    except Exception as e:
-        show_error_message(f"An error occurred: {str(e)}")
+    except (OSError, ValueError) as e:
+        show_error_message(f"A file or data error occurred: {str(e)}")
         if verbose:
             console.print_exception()
         return False
+    except Exception as e:
+        show_error_message(f"An unexpected error occurred: {str(e)}")
+        if verbose:
+            console.print_exception()
+        raise
 
 
 @app.command()
