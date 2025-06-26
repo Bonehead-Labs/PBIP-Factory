@@ -1,198 +1,197 @@
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch
 import tempfile
 import json
+import shutil
 
-from pbi_automation.core.processor import PBIPProcessor
-from pbi_automation.models.config import AppConfig, ParameterConfig, OutputConfig
+from src.pbi_automation.core.processor import PBIPProcessor
+from src.pbi_automation.models.config import Config
+from src.pbi_automation.models.data import DataRow
 
-@pytest.fixture
-def sample_config():
-    return {
-        "parameters": [
-            {
-                "name": "region",
-                "path": "report.parameters.region.value",
-                "type": "string"
-            },
-            {
-                "name": "budget",
-                "path": "report.parameters.budget.value",
-                "type": "float"
-            }
-        ],
-        "output": {
-            "format": "pbip",
-            "naming_pattern": "{region}_report",
-            "directory": "./output"
-        }
-    }
-
-@pytest.fixture
-def sample_template():
-    return {
-        "version": "1.0",
-        "report": {
-            "name": "Sample Report",
-            "parameters": {
-                "region": {
-                    "name": "Region",
-                    "type": "string",
-                    "value": "North"
-                },
-                "budget": {
-                    "name": "Budget",
-                    "type": "float",
-                    "value": 1000000.0
-                }
-            }
-        }
-    }
 
 @pytest.fixture
 def temp_dir():
     with tempfile.TemporaryDirectory() as tmpdirname:
         yield Path(tmpdirname)
 
-def test_pbip_processor_initialization(temp_dir, sample_config, sample_template):
+
+@pytest.fixture
+def sample_config():
+    return Config(
+        parameters=[
+            {"name": "Name", "type": "string"},
+            {"name": "Owner", "type": "string"}
+        ],
+        output={},
+        logging={}
+    )
+
+
+@pytest.fixture
+def sample_template(temp_dir):
+    """Create a minimal PBIP template structure for testing."""
+    template_dir = temp_dir / "Example_PBIP"
+    template_dir.mkdir()
+    
+    # Create .pbip file
+    pbip_file = template_dir / "Example_PBIP.pbip"
+    pbip_content = {
+        "version": "1.0",
+        "artifacts": [
+            {
+                "report": {
+                    "path": "Example_PBIP.Report"
+                }
+            }
+        ],
+        "settings": {
+            "enableAutoRecovery": True
+        }
+    }
+    with open(pbip_file, 'w') as f:
+        json.dump(pbip_content, f, indent=2)
+    
+    # Create Report folder
+    report_dir = template_dir / "Example_PBIP.Report"
+    report_dir.mkdir()
+    
+    # Create definition.pbir
+    pbir_file = report_dir / "definition.pbir"
+    pbir_content = {
+        "version": "4.0",
+        "datasetReference": {
+            "byPath": {
+                "path": "../Example_PBIP.SemanticModel"
+            },
+            "byConnection": None
+        }
+    }
+    with open(pbir_file, 'w') as f:
+        json.dump(pbir_content, f, indent=2)
+    
+    # Create SemanticModel folder
+    semantic_dir = template_dir / "Example_PBIP.SemanticModel"
+    semantic_dir.mkdir()
+    
+    # Create model.bim with parameters
+    model_bim_file = semantic_dir / "model.bim"
+    model_bim_content = {
+        "compatibilityLevel": 1550,
+        "model": {
+            "expressions": [
+                {
+                    "name": "Name",
+                    "expression": "\"Name A\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]",
+                    "kind": "m"
+                },
+                {
+                    "name": "Owner",
+                    "expression": "\"Owner A\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]",
+                    "kind": "m"
+                }
+            ]
+        }
+    }
+    with open(model_bim_file, 'w') as f:
+        json.dump(model_bim_content, f, indent=2)
+    
+    # Create definition.pbism
+    pbism_file = semantic_dir / "definition.pbism"
+    pbism_content = {
+        "version": "4.0",
+        "settings": {}
+    }
+    with open(pbism_file, 'w') as f:
+        json.dump(pbism_content, f, indent=2)
+    
+    return template_dir
+
+
+def test_processor_initialization(sample_config):
     """Test PBIPProcessor initialization."""
-    # Create a temporary template file
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
-    
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
-    
-    assert processor.template_path == template_file
-    assert processor.output_dir == temp_dir
-    assert processor.template_data == sample_template
-    assert isinstance(processor.config, AppConfig)
+    processor = PBIPProcessor(sample_config)
+    assert processor.config == sample_config
 
-def test_update_nested_dict():
-    """Test nested dictionary update functionality."""
-    processor = PBIPProcessor(Mock(), {}, Mock())
+
+def test_process_single_row(temp_dir, sample_config, sample_template):
+    """Test processing a single data row."""
+    processor = PBIPProcessor(sample_config)
     
-    data = {"a": {"b": {"c": 1}}}
+    # Create test data
+    row_data = {
+        "Report_Name": "Test_Report",
+        "Name": "Test_Report",
+        "Owner": "Test_Team"
+    }
+    row = DataRow(row_data)
     
-    # Test successful update
-    result = processor._update_nested_dict(data, "a.b.c", 2)
+    # Process the row
+    output_dir = temp_dir / "output"
+    output_dir.mkdir()
+    
+    result = processor.process_row(sample_template, row, output_dir)
+    
+    # Verify the result
     assert result is True
-    assert data["a"]["b"]["c"] == 2
     
-    # Test creating new path
-    result = processor._update_nested_dict(data, "x.y.z", 3)
-    assert result is True
-    assert data["x"]["y"]["z"] == 3
+    # Check that output folder was created
+    expected_folder = output_dir / "Test_Report"
+    assert expected_folder.exists()
     
-    # Test invalid path
-    result = processor._update_nested_dict(data, "", 4)
-    assert result is False
+    # Check that files were renamed
+    assert (expected_folder / "Test_Report.pbip").exists()
+    assert (expected_folder / "Test_Report.Report").exists()
+    assert (expected_folder / "Test_Report.SemanticModel").exists()
+    
+    # Check that parameters were updated
+    model_bim_path = expected_folder / "Test_Report.SemanticModel" / "model.bim"
+    with open(model_bim_path, 'r') as f:
+        model_data = json.load(f)
+    
+    expressions = model_data["model"]["expressions"]
+    name_param = next((e for e in expressions if e["name"] == "Name"), None)
+    owner_param = next((e for e in expressions if e["name"] == "Owner"), None)
+    
+    assert name_param is not None
+    assert owner_param is not None
+    assert '"Test_Report"' in name_param["expression"]
+    assert '"Test_Team"' in owner_param["expression"]
 
-def test_generate_filename(temp_dir, sample_config, sample_template):
-    """Test filename generation."""
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
-    
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
-    
-    row = {"region": "North", "budget": 500000.0}
-    filename = processor._generate_filename(row)
-    
-    assert filename == "North_report.pbip"
 
-def test_apply_parameter_updates(temp_dir, sample_config, sample_template):
-    """Test parameter updates application."""
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
+def test_process_multiple_rows(temp_dir, sample_config, sample_template):
+    """Test processing multiple data rows."""
+    processor = PBIPProcessor(sample_config)
     
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
+    # Create test data
+    rows = [
+        DataRow({"Report_Name": "Report1", "Name": "Report1", "Owner": "Team1"}),
+        DataRow({"Report_Name": "Report2", "Name": "Report2", "Owner": "Team2"})
+    ]
     
-    row = {"region": "South", "budget": 750000.0}
-    updated_data = processor._apply_parameter_updates(processor.template_data, row)
+    # Process the rows
+    output_dir = temp_dir / "output"
+    output_dir.mkdir()
     
-    assert updated_data["report"]["parameters"]["region"]["value"] == "South"
-    assert updated_data["report"]["parameters"]["budget"]["value"] == 750000.0
+    success_count = processor.process_data(sample_template, rows, output_dir)
+    
+    # Verify results
+    assert success_count == 2
+    
+    # Check that both folders were created
+    assert (output_dir / "Report1").exists()
+    assert (output_dir / "Report2").exists()
+    
+    # Check that both have renamed files
+    assert (output_dir / "Report1" / "Report1.pbip").exists()
+    assert (output_dir / "Report2" / "Report2.pbip").exists()
 
-def test_process_row(temp_dir, sample_config, sample_template):
-    """Test processing a single row."""
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
-    
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
-    
-    row = {"region": "East", "budget": 300000.0}
-    output_file = processor.process_row(row)
-    
-    assert output_file.exists()
-    assert output_file.name == "East_report.pbip"
-    
-    # Verify the content was updated
-    with open(output_file, 'r') as f:
-        content = json.load(f)
-    
-    assert content["report"]["parameters"]["region"]["value"] == "East"
-    assert content["report"]["parameters"]["budget"]["value"] == 300000.0
 
-def test_validate_parameters(temp_dir, sample_config, sample_template):
-    """Test parameter validation."""
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
+def test_data_row_folder_name():
+    """Test DataRow folder name generation."""
+    # Test with Report_Name
+    row = DataRow({"Report_Name": "My_Report", "Name": "Test", "Owner": "Team"})
+    assert row.get_folder_name() == "My_Report"
     
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
-    
-    # Test with all parameters present
-    row = {"region": "North", "budget": 500000.0}
-    missing = processor.validate_parameters(row)
-    assert missing == []
-    
-    # Test with missing parameters
-    row = {"region": "North"}
-    missing = processor.validate_parameters(row)
-    assert "budget" in missing
-
-def test_get_parameter_summary(temp_dir, sample_config, sample_template):
-    """Test parameter summary generation."""
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
-    
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
-    
-    row = {"region": "North", "budget": 500000.0}
-    summary = processor.get_parameter_summary(row)
-    
-    assert "region" in summary
-    assert "budget" in summary
-    assert summary["region"]["value"] == "North"
-    assert summary["budget"]["value"] == 500000.0
-
-def test_type_conversion(temp_dir, sample_config, sample_template):
-    """Test type conversion for different parameter types."""
-    template_file = temp_dir / "template.pbip"
-    with open(template_file, 'w') as f:
-        json.dump(sample_template, f)
-    
-    processor = PBIPProcessor(template_file, sample_config, temp_dir)
-    
-    # Test string to integer conversion
-    row = {"region": "North", "budget": "500000"}
-    updated_data = processor._apply_parameter_updates(processor.template_data, row)
-    assert updated_data["report"]["parameters"]["budget"]["value"] == 500000.0
-    
-    # Test boolean conversion
-    config_with_bool = sample_config.copy()
-    config_with_bool["parameters"].append({
-        "name": "is_active",
-        "path": "report.parameters.isActive.value",
-        "type": "boolean"
-    })
-    
-    processor.config = AppConfig(**config_with_bool)
-    row = {"region": "North", "budget": 500000.0, "is_active": "true"}
-    updated_data = processor._apply_parameter_updates(processor.template_data, row)
-    assert updated_data["report"]["parameters"]["isActive"]["value"] is True 
+    # Test fallback to Name_Owner
+    row = DataRow({"Name": "Test", "Owner": "Team"})
+    assert row.get_folder_name() == "Test_Team" 

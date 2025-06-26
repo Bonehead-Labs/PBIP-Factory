@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pbi-template-automation"
 version = "0.1.0"
-description = "A sophisticated tool for programmatically generating modified Power BI project files based on parameterized configurations"
+description = "A tool for automating Power BI template (PBIP) generation with parameter updates"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -27,15 +27,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "click>=8.1.0",
-    "rich>=13.0.0",
-    "pydantic>=2.0.0",
-    "pyyaml>=6.0",
-    "python-dotenv>=1.0.0",
-    "pathlib2>=2.3.0",
     "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
     "structlog>=23.0.0",
-    "colorama>=0.4.6",
 ]
 
 [project.optional-dependencies]
@@ -45,17 +40,10 @@ dev = [
     "black>=23.0.0",
     "isort>=5.12.0",
     "flake8>=6.0.0",
-    "mypy>=1.0.0",
-    "pre-commit>=3.0.0",
-]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
 ]
 
 [project.scripts]
-pbi-automation = "pbi_automation.cli:main"
+pbi-automation = "src.pbi_automation.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/your-org/pbi-template-automation"
@@ -90,21 +78,6 @@ multi_line_output = 3
 line_length = 88
 known_first_party = ["pbi_automation"]
 
-[tool.mypy]
-python_version = "3.9"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-strict_equality = true
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -115,8 +88,6 @@ addopts = [
     "--strict-config",
     "--cov=pbi_automation",
     "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",

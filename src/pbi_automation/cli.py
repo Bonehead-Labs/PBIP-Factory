@@ -1,4 +1,3 @@
-import click
 import typer
 from pathlib import Path
 from rich.console import Console
@@ -12,6 +11,12 @@ from .core.validator import PBIPValidator
 from .models.config import Config
 from .models.data import load_data_from_csv
 from .utils.logger import setup_logging, log_info, log_error, log_success
+from .utils.cli_utils import (
+    show_splash_screen, show_success_message, show_error_message, 
+    show_warning_message, show_info_message, create_progress_bar,
+    show_generated_folders, show_config_summary, show_processing_header,
+    show_completion_message
+)
 
 app = typer.Typer()
 console = Console()
@@ -22,162 +27,92 @@ def generate(
     template: str = typer.Option(..., "--template", "-t", help="Path to PBIP template folder"),
     config: str = typer.Option(..., "--config", "-c", help="Path to configuration YAML file"),
     data: str = typer.Option(..., "--data", "-d", help="Path to CSV data file"),
-    output_dir: str = typer.Option("./output", "--output-dir", "-o", help="Output directory for generated projects"),
+    output_dir: str = typer.Option(..., "--output-dir", "-o", help="Output directory for generated projects"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
 ):
-    """Generate PBIP projects from template and data."""
+    """Generate PBIP projects from template with parameter updates."""
     
-    # Setup logging
-    setup_logging(verbose=verbose)
+    # Show splash screen
+    show_splash_screen()
     
     try:
+        # Setup logging
+        setup_logging(verbose=verbose)
+        
         # Load configuration
         config_path = Path(config)
         if not config_path.exists():
-            log_error(f"Configuration file not found: {config_path}")
+            show_error_message(f"Configuration file not found: {config}")
             raise typer.Exit(1)
         
-        app_config = Config.from_yaml(config_path)
-        log_success(f"✓ Loaded config: {config}")
+        config_obj = Config.from_yaml(config_path)
+        show_success_message(f"Loaded config: {config}")
         
         # Load data
         data_path = Path(data)
         if not data_path.exists():
-            log_error(f"Data file not found: {data_path}")
+            show_error_message(f"Data file not found: {data}")
             raise typer.Exit(1)
         
         data_rows = load_data_from_csv(data_path)
-        log_success(f"✓ Loaded data: {len(data_rows)} rows")
+        show_success_message(f"Loaded data: {len(data_rows)} rows")
         
         # Validate template
         template_path = Path(template)
         if not template_path.exists():
-            log_error(f"Template not found: {template_path}")
+            show_error_message(f"Template not found: {template}")
             raise typer.Exit(1)
         
         validator = PBIPValidator()
         if not validator.validate_template(template_path):
-            log_error("Template validation failed")
+            show_error_message(f"Invalid template: {template}")
             raise typer.Exit(1)
         
-        log_success(f"✓ Validated PBIP template: {template}")
+        show_success_message(f"Validated PBIP template: {template}")
         
-        # Create output directory
+        # Setup output directory
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
-        log_success(f"✓ Output directory: {output_dir}")
+        show_success_message(f"Output directory: {output_dir}")
         
-        # Process data
-        processor = PBIPProcessor(app_config)
+        # Show configuration summary
+        show_config_summary(config, data, template, output_dir)
         
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
-        ) as progress:
-            task = progress.add_task("Generating PBIP projects...", total=None)
+        # Show processing header
+        show_processing_header()
+        
+        # Process data with progress bar
+        processor = PBIPProcessor(config_obj)
+        
+        with create_progress_bar("Generating PBIP projects...") as progress:
+            task = progress.add_task("Processing...", total=len(data_rows))
             
             success_count = processor.process_data(template_path, data_rows, output_path)
             
-            progress.update(task, completed=True)
+            progress.update(task, completed=len(data_rows))
         
-        # Show results
-        if success_count > 0:
-            log_success(f"✓ Successfully generated {success_count} PBIP projects in {output_dir}")
-            
-            # List generated folders
-            generated_folders = []
-            for item in output_path.iterdir():
-                if item.is_dir():
-                    generated_folders.append(item.name)
-            
-            if generated_folders:
-                console.print("\nGenerated folders:")
-                for folder in sorted(generated_folders):
-                    console.print(f"  • {folder}")
+        # Show completion message
+        show_completion_message(success_count, len(data_rows))
         
-        else:
-            log_error("No projects were generated successfully")
-            raise typer.Exit(1)
-            
+        # Show generated folders
+        generated_folders = [row.get_folder_name() for row in data_rows]
+        show_generated_folders(generated_folders)
+        
+        log_success(f"Successfully generated {success_count} PBIP projects in {output_dir}")
+        
     except Exception as e:
-        log_error(f"Generation failed: {str(e)}")
+        show_error_message(f"An error occurred: {str(e)}")
+        if verbose:
+            console.print_exception()
         raise typer.Exit(1)
 
 
 @app.command()
-def validate(
-    template: str = typer.Option(..., "--template", "-t", help="Path to PBIP template folder"),
-    config: str = typer.Option(..., "--config", "-c", help="Path to configuration YAML file"),
-    data: str = typer.Option(..., "--data", "-d", help="Path to CSV data file"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
-):
-    """Validate template, configuration, and data files."""
-    
-    # Setup logging
-    setup_logging(verbose=verbose)
-    
-    try:
-        # Validate template
-        template_path = Path(template)
-        if not template_path.exists():
-            log_error(f"Template not found: {template_path}")
-            raise typer.Exit(1)
-        
-        validator = PBIPValidator()
-        if not validator.validate_template(template_path):
-            log_error("Template validation failed")
-            raise typer.Exit(1)
-        
-        log_success(f"✓ Template validation passed: {template}")
-        
-        # Validate configuration
-        config_path = Path(config)
-        if not config_path.exists():
-            log_error(f"Configuration file not found: {config_path}")
-            raise typer.Exit(1)
-        
-        try:
-            app_config = Config.from_yaml(config_path)
-            log_success(f"✓ Configuration validation passed: {config}")
-        except Exception as e:
-            log_error(f"Configuration validation failed: {str(e)}")
-            raise typer.Exit(1)
-        
-        # Validate data
-        data_path = Path(data)
-        if not data_path.exists():
-            log_error(f"Data file not found: {data_path}")
-            raise typer.Exit(1)
-        
-        try:
-            data_rows = load_data_from_csv(data_path)
-            log_success(f"✓ Data validation passed: {len(data_rows)} rows")
-        except Exception as e:
-            log_error(f"Data validation failed: {str(e)}")
-            raise typer.Exit(1)
-        
-        # Validate parameter mapping
-        config_params = {param.name for param in app_config.parameters}
-        if data_rows:
-            data_columns = set(data_rows[0].data.keys())
-            missing_params = config_params - data_columns
-            extra_columns = data_columns - config_params
-            
-            if missing_params:
-                log_error(f"Missing parameters in data: {missing_params}")
-                raise typer.Exit(1)
-            
-            if extra_columns:
-                log_warning(f"Extra columns in data (will be ignored): {extra_columns}")
-            
-            log_success("✓ Parameter mapping validation passed")
-        
-        log_success("✓ All validations passed!")
-        
-    except Exception as e:
-        log_error(f"Validation failed: {str(e)}")
-        raise typer.Exit(1)
+def version():
+    """Show version information."""
+    show_splash_screen()
+    console.print("[bold blue]Version:[/bold blue] 1.0.0")
+    console.print("[bold blue]Power BI Template Automation Tool[/bold blue]")
 
 
 if __name__ == "__main__":

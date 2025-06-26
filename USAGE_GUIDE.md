@@ -1,264 +1,250 @@
 # Power BI Template Automation - Usage Guide
 
-## Quick Start
+This guide provides step-by-step instructions for using the Power BI Template Automation tool to generate multiple PBIP projects from a master template.
 
-### 1. Installation
+## Prerequisites
 
-```bash
-# Clone and install
-git clone <repository-url>
-cd pbi-template-automation
-pip install -e .
-```
+- Python 3.9 or higher
+- Power BI Desktop (for opening generated files)
+- A master PBIP template with parameters defined
 
-### 2. Basic Usage
+## Step 1: Prepare Your Master Template
 
-```bash
-# Generate reports from template
-pbi-automation generate \
-    --template Example_PBIP \
-    --config examples/configs/pbip_config.yaml \
-    --data examples/data/pbip_data.csv \
-    --output-dir ./output
-```
+Your master template should be a PBIP folder with:
+- A `.pbip` file (e.g., `Example_PBIP.pbip`)
+- A `.Report` folder with report files
+- A `.SemanticModel` folder with `model.bim` containing parameters
 
-### 3. Validate Your Setup
-
-```bash
-# Validate all files before generation
-pbi-automation validate \
-    --template Example_PBIP \
-    --config examples/configs/pbip_config.yaml \
-    --data examples/data/pbip_data.csv
-```
-
-## Configuration Guide
-
-### PBIP Template Structure
-
-Your Power BI project folder should have this structure:
-
+### Example Template Structure
 ```
 Example_PBIP/
 ├── Example_PBIP.pbip
 ├── Example_PBIP.Report/
 │   ├── definition.pbir
-│   └── report.json
+│   ├── report.json
+│   └── StaticResources/
 └── Example_PBIP.SemanticModel/
     ├── definition.pbism
-    ├── diagramLayout.json
-    └── model.bim  # Contains the parameters to update
+    ├── model.bim          # Contains parameters
+    └── diagramLayout.json
 ```
 
-The tool reads parameters from the `model.bim` file in the SemanticModel folder. Parameters are defined as expressions like:
+### Defining Parameters in model.bim
+
+Parameters should be defined in the `expressions` section of `model.bim`:
 
 ```json
 {
-  "name": "Name",
-  "expression": "\"Name A\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]"
+  "model": {
+    "expressions": [
+      {
+        "name": "Name",
+        "expression": "\"Name A\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]"
+      },
+      {
+        "name": "Owner", 
+        "expression": "\"Owner A\" meta [IsParameterQuery=true, Type=\"Any\", IsParameterQueryRequired=true]"
+      }
+    ]
+  }
 }
 ```
 
-### Configuration File (YAML)
+## Step 2: Create Configuration File
 
-Define how CSV columns map to parameters in the model.bim file:
+Create a YAML configuration file (`pbip_config.yaml`):
 
 ```yaml
 parameters:
-  - name: "Name"           # CSV column name (must match parameter name in model.bim)
-    type: "string"         # Data type: string, integer, float, boolean
-  
-  - name: "Owner"
-    type: "string"
+  - name: Name
+    type: string
+  - name: Owner
+    type: string
 
 output:
-  naming_pattern: "{Name}_{Owner}"  # Filename pattern using CSV columns
-  directory: "./output"
+  folder_naming: "{Name}_{Owner}"
 
 logging:
-  level: "INFO"
-  format: "json"
-  file: "pbi_automation.log"
+  level: INFO
 ```
 
-### Data File (CSV)
+**Configuration Options:**
+- `parameters`: List of parameters to update
+  - `name`: Parameter name (must match model.bim)
+  - `type`: Parameter type (string, number, etc.)
+- `output.folder_naming`: Pattern for output folder names
+- `logging.level`: Logging verbosity (DEBUG, INFO, WARNING, ERROR)
 
-Your CSV should contain columns matching the parameter names in your model.bim:
+## Step 3: Prepare CSV Data
+
+Create a CSV file (`pbip_data.csv`) with your data:
 
 ```csv
-Name,Owner
-North_Report,Marketing_Team
-South_Report,Sales_Team
-East_Report,Finance_Team
-West_Report,HR_Team
-Central_Report,IT_Team
+Report_Name,Name,Owner
+North_Report,North_Report,Marketing_Team
+South_Report,South_Report,Sales_Team
+East_Report,East_Report,Finance_Team
+West_Report,West_Report,HR_Team
+Central_Report,Central_Report,IT_Team
 ```
 
-## Advanced Features
+**CSV Column Mapping:**
+- `Report_Name`: Used for output folder names and internal file renaming
+- `Name`: Maps to the `Name` parameter in model.bim
+- `Owner`: Maps to the `Owner` parameter in model.bim
 
-### Dry Run Mode
+## Step 4: Run the Tool
 
-Preview changes without generating files:
-
+### Basic Command
 ```bash
-pbi-automation generate \
+python -m src.pbi_automation.cli generate \
     --template Example_PBIP \
-    --config config.yaml \
-    --data data.csv \
-    --output-dir ./output \
-    --dry-run
+    --config pbip_config.yaml \
+    --data pbip_data.csv \
+    --output-dir output
 ```
 
-### Verbose Logging
-
-Get detailed output during processing:
-
+### With Verbose Logging
 ```bash
-pbi-automation generate \
+python -m src.pbi_automation.cli generate \
     --template Example_PBIP \
-    --config config.yaml \
-    --data data.csv \
-    --output-dir ./output \
+    --config pbip_config.yaml \
+    --data pbip_data.csv \
+    --output-dir output \
     --verbose
 ```
 
-### Custom Filename Patterns
+### Command Options
+- `--template, -t`: Path to master PBIP template folder
+- `--config, -c`: Path to YAML configuration file
+- `--data, -d`: Path to CSV data file
+- `--output-dir, -o`: Output directory for generated projects
+- `--verbose, -v`: Enable verbose logging
 
-Use any CSV column in your filename pattern:
+## Step 5: Verify Output
 
-```yaml
-output:
-  naming_pattern: "{Name}_{Owner}_{timestamp}"
-  # Will generate: North_Report_Marketing_Team_20240620_143022/
-```
-
-### Type Conversion
-
-The tool automatically converts data types:
-
-- **string**: No conversion
-- **integer**: Converts "123" → 123
-- **float**: Converts "123.45" → 123.45
-- **boolean**: Converts "true"/"1"/"yes" → True
-
-## Best Practices
-
-### 1. Template Design
-
-- Use descriptive parameter names in your Power BI model
-- Test your template in Power BI Desktop first
-- Ensure parameters are properly defined in model.bim
-
-### 2. Configuration Management
-
-- Keep configurations in version control
-- Use environment-specific configs
-- Document parameter mappings
-
-### 3. Data Preparation
-
-- Validate CSV data before processing
-- Use consistent data types
-- Include all required columns
-
-### 4. File Organization
+After running the tool, check your output directory:
 
 ```
-project/
-├── Example_PBIP/              # Your PBIP template
-├── configs/
-│   ├── regional_config.yaml
-│   └── department_config.yaml
-├── data/
-│   ├── regions.csv
-│   └── departments.csv
-└── output/
-    └── generated_reports/
+output/
+├── North_Report/
+│   ├── North_Report.pbip
+│   ├── North_Report.Report/
+│   └── North_Report.SemanticModel/
+├── South_Report/
+│   ├── South_Report.pbip
+│   ├── South_Report.Report/
+│   └── South_Report.SemanticModel/
+└── ...
 ```
+
+### What to Verify
+1. **Folder Structure**: Each project has unique names
+2. **Parameter Values**: Check `model.bim` in each `.SemanticModel` folder
+3. **File References**: All internal references point to correct folders
+
+## Step 6: Open in Power BI Desktop
+
+1. Open Power BI Desktop
+2. File → Open → Browse
+3. Navigate to your output folder
+4. Select any `.pbip` file (e.g., `North_Report.pbip`)
+5. The project should open without errors
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Parameter not found in model.bim**
-   - Check that parameter names in CSV match exactly with model.bim
-   - Verify the parameter exists in the SemanticModel
+**Error: "Required artifact is missing"**
+- **Cause**: Internal references still point to old folder names
+- **Solution**: Ensure the tool completed successfully and all references were updated
 
-2. **Type conversion errors**
-   - Ensure CSV data matches expected types
-   - Check for empty or invalid values
+**Error: "Multiple SaveChanges without transaction"**
+- **Cause**: Table definition was modified incorrectly
+- **Solution**: The tool should preserve table definitions as parameter references
 
-3. **Missing CSV columns**
-   - Verify all required parameters are in CSV
-   - Check column names match config
+**Error: "Cannot read definition.pbism"**
+- **Cause**: File path references are incorrect
+- **Solution**: Check that all internal references were updated properly
 
-4. **Invalid filename pattern**
-   - Ensure pattern uses valid CSV column names
-   - Test with sample data first
+**Warning: "Failed to update references in cache.abf"**
+- **Cause**: Binary file cannot be read as text
+- **Solution**: This is expected - cache.abf files are deleted anyway
 
-### Debug Commands
+### Debugging Steps
 
-```bash
-# Validate configuration
-pbi-automation validate -t Example_PBIP -c config.yaml -d data.csv
+1. **Check Logs**: Use `--verbose` flag for detailed logging
+2. **Verify CSV Format**: Ensure column names match configuration
+3. **Check Template**: Verify master template has correct structure
+4. **Inspect Output**: Manually check generated files for correct references
 
-# List available templates
-pbi-automation list-templates
+### Manual Verification
 
-# Get tool information
-pbi-automation info
-```
+Check these files in each generated project:
 
-## Examples
+1. **`.pbip` file**: Should reference renamed folders
+2. **`definition.pbir`**: Should reference renamed semantic model
+3. **`model.bim`**: Should have updated parameter values
+4. **Folder names**: Should match `Report_Name` from CSV
 
-### Example 1: Regional Reports
+## Advanced Usage
 
-**Template**: `Example_PBIP`
-**Config**: `regional_config.yaml`
-**Data**: `regions.csv`
+### Custom Parameter Types
 
-```bash
-pbi-automation generate \
-    --template Example_PBIP \
-    --config configs/regional_config.yaml \
-    --data data/regions.csv \
-    --output-dir ./regional_reports \
-    --verbose
-```
-
-### Example 2: Department Reports
-
-**Template**: `Example_PBIP`
-**Config**: `department_config.yaml`
-**Data**: `departments.csv`
-
-```bash
-pbi-automation generate \
-    --template Example_PBIP \
-    --config configs/department_config.yaml \
-    --data data/departments.csv \
-    --output-dir ./department_reports \
-    --dry-run
-```
-
-## Integration
-
-### CI/CD Pipeline
+Add different parameter types to your configuration:
 
 ```yaml
-# GitHub Actions example
-- name: Generate Power BI Reports
-  run: |
-    pbi-automation generate \
-      --template ${{ github.workspace }}/Example_PBIP \
-      --config ${{ github.workspace }}/configs/config.yaml \
-      --data ${{ github.workspace }}/data/parameters.csv \
-      --output-dir ${{ github.workspace }}/output
+parameters:
+  - name: Name
+    type: string
+  - name: Owner
+    type: string
+  - name: Year
+    type: number
+  - name: IsActive
+    type: boolean
 ```
+
+### Large-Scale Processing
+
+For processing many projects:
+
+1. **Batch Processing**: Split large CSV files into smaller batches
+2. **Parallel Processing**: Run multiple instances with different output directories
+3. **Error Handling**: Check logs for any failed generations
+
+### Integration with CI/CD
+
+```bash
+# Example CI/CD script
+python -m src.pbi_automation.cli generate \
+    --template $TEMPLATE_PATH \
+    --config $CONFIG_PATH \
+    --data $DATA_PATH \
+    --output-dir $OUTPUT_PATH \
+    --verbose
+
+# Check exit code
+if [ $? -eq 0 ]; then
+    echo "PBIP generation successful"
+else
+    echo "PBIP generation failed"
+    exit 1
+fi
+```
+
+## Best Practices
+
+1. **Backup Templates**: Always keep a backup of your master template
+2. **Test Small**: Test with a few rows before processing large datasets
+3. **Validate Output**: Always verify generated projects open correctly
+4. **Version Control**: Use version control for configuration and data files
+5. **Documentation**: Document your parameter structure and naming conventions
 
 ## Support
 
-- 📖 **Documentation**: See README.md for full documentation
-- 🐛 **Issues**: Report bugs on GitHub
-- 💬 **Discussions**: Join community discussions
-- 📧 **Email**: support@example.com 
+If you encounter issues:
+1. Check the troubleshooting section above
+2. Review the verbose logs for error details
+3. Verify your template structure and configuration
+4. Test with the provided example files 

@@ -1,277 +1,144 @@
 # Power BI Template Automation
 
-A Python tool for programmatically generating modified Power BI project files (PBIP) based on parameterized configurations.
+A Python tool for automating Power BI template (PBIP) generation with parameter updates. This tool takes a master PBIP template and generates multiple independent Power BI projects by updating parameters based on CSV data.
 
 ## Features
 
-- 🚀 **Bulk Processing**: Generate multiple PBIP projects from a single template
-- 📊 **CSV-Driven**: Use CSV files to define parameter variations
-- 🔧 **Simple Configuration**: Easy YAML-based configuration
-- 🎨 **Modern CLI**: Beautiful, interactive command-line interface with rich formatting
-- 📁 **PBIP Focus**: Specialized for Power BI project files (PBIP folders)
-- 🛡️ **Type Safety**: Built with Pydantic for robust data validation
-- 📝 **Comprehensive Logging**: Structured logging with multiple output formats
-- ✅ **Parameter Validation**: Automatically detects and validates PBIP parameters
+- **Template-based generation**: Use a master PBIP template as the foundation
+- **Parameter automation**: Update semantic model parameters from CSV data
+- **Unique project names**: Automatically rename all internal references for unique, publishable projects
+- **Clean output**: Remove cache files for proper data loading
+- **Simple configuration**: YAML-based configuration with CSV data input
 
-## Installation
+## Quick Start
 
-### Prerequisites
+### Basic Command
+python -m src.pbi_automation.cli generate --template Example_PBIP --config examples/configs/pbip_config.yaml --data examples/data/pbip_data.csv --output-dir output --verbose
 
-- Python 3.9 or higher
-- pip package manager
-
-### Install from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/your-org/pbi-template-automation.git
-cd pbi-template-automation
-
-# Create a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install in development mode
-python install.py
-```
-
-### Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Quick Start
+### 2. Prepare Your Files
 
-1. **Prepare your Power BI project folder (PBIP)**
-2. **Create a CSV file with parameter variations**
-3. **Run the automation tool**
+- **Master Template**: A PBIP folder (e.g., `Example_PBIP/`) with parameters defined in the semantic model
+- **Configuration**: YAML file defining parameters to update
+- **Data**: CSV file with values for each generated project
+
+### 3. Run the Tool
 
 ```bash
-# Basic usage
-pbi-automation generate --template Example_PBIP --config config.yaml --data parameters.csv --output-dir ./output
-
-# With verbose logging
-pbi-automation generate \
-    --template ./Example_PBIP \
-    --config ./examples/configs/pbip_config.yaml \
-    --data ./examples/data/pbip_data.csv \
-    --output-dir ./generated_reports \
+python -m src.pbi_automation.cli generate \
+    --template Example_PBIP \
+    --config examples/configs/pbip_config.yaml \
+    --data examples/data/pbip_data.csv \
+    --output-dir output \
     --verbose
 ```
 
-## How It Works
+## File Structure
 
-The tool works by:
-
-1. **Reading** a PBIP template folder (containing `.pbip` file and subfolders)
-2. **Detecting** parameters from the `model.bim` file in the SemanticModel folder
-3. **Copying** the entire PBIP structure to new folders
-4. **Updating** parameter values in each `model.bim` file according to your CSV data
-5. **Naming** output folders using your specified pattern
+```
+project/
+├── Example_PBIP/                    # Master template
+│   ├── Example_PBIP.pbip
+│   ├── Example_PBIP.Report/
+│   └── Example_PBIP.SemanticModel/
+├── examples/
+│   ├── configs/
+│   │   └── pbip_config.yaml        # Parameter configuration
+│   └── data/
+│       └── pbip_data.csv           # Data for generation
+├── output/                          # Generated projects
+│   ├── North_Report/
+│   ├── South_Report/
+│   └── ...
+└── src/pbi_automation/              # Source code
+```
 
 ## Configuration
 
-### CSV Data Format
-
-Your CSV file should contain columns that correspond to the parameters in your PBIP template:
-
-```csv
-Name,Owner
-North_Report,Marketing_Team
-South_Report,Sales_Team
-East_Report,Finance_Team
-West_Report,HR_Team
-Central_Report,IT_Team
-```
-
-### Configuration File (YAML)
+### YAML Configuration (`pbip_config.yaml`)
 
 ```yaml
-# config.yaml
 parameters:
-  - name: "Name"
-    type: "string"
-  - name: "Owner"
-    type: "string"
+  - name: Name
+    type: string
+  - name: Owner
+    type: string
 
 output:
-  naming_pattern: "{Name}_{Owner}"
-  directory: "./output"
+  folder_naming: "{Name}_{Owner}"
 
 logging:
-  level: "INFO"
-  format: "json"
-  file: "pbi_automation.log"
+  level: INFO
 ```
 
-## CLI Commands
+### CSV Data (`pbip_data.csv`)
 
-### Generate PBIP Projects
-
-```bash
-pbi-automation generate [OPTIONS]
+```csv
+Report_Name,Name,Owner
+North_Report,North_Report,Marketing_Team
+South_Report,South_Report,Sales_Team
+East_Report,East_Report,Finance_Team
 ```
 
-**Options:**
-- `--template, -t`: Path to the source PBIP folder
-- `--config, -c`: Path to configuration file
-- `--data, -d`: Path to CSV data file
-- `--output-dir, -o`: Output directory for generated folders
-- `--verbose, -v`: Enable verbose logging
-- `--dry-run`: Preview changes without generating files
+**Column mapping:**
+- `Report_Name`: Used for output folder names and internal file renaming
+- `Name`: Maps to the `Name` parameter in the semantic model
+- `Owner`: Maps to the `Owner` parameter in the semantic model
 
-### Validate Configuration
+## How It Works
 
-```bash
-pbi-automation validate [OPTIONS]
-```
+1. **Copy Template**: Creates a copy of the master template for each data row
+2. **Rename Files**: Renames all internal files and folders to match `Report_Name`
+3. **Update References**: Updates all internal references in project files
+4. **Update Parameters**: Updates parameter values in the semantic model
+5. **Clean Cache**: Removes cache files for proper data loading
 
-**Options:**
-- `--template, -t`: Path to the source PBIP folder
-- `--config, -c`: Path to configuration file
-- `--data, -d`: Path to CSV data file
+## Generated Output
 
-### List Templates
+Each generated project is:
+- **Fully independent** with unique names
+- **Ready for Power BI Desktop** - opens without errors
+- **Ready for publishing** to Power BI Service
+- **Parameterized** with updated values from CSV data
 
-```bash
-pbi-automation list-templates [OPTIONS]
-```
+## Requirements
 
-### Show Information
+- Python 3.9+
+- Power BI Desktop (for opening generated files)
 
-```bash
-pbi-automation info
-```
+## Dependencies
 
-## Example Usage
-
-### 1. Validate Your Setup
-
-```bash
-pbi-automation validate \
-    --template Example_PBIP \
-    --config examples/configs/pbip_config.yaml \
-    --data examples/data/pbip_data.csv
-```
-
-### 2. Preview Changes (Dry Run)
-
-```bash
-pbi-automation generate \
-    --template Example_PBIP \
-    --config examples/configs/pbip_config.yaml \
-    --data examples/data/pbip_data.csv \
-    --dry-run
-```
-
-### 3. Generate PBIP Projects
-
-```bash
-pbi-automation generate \
-    --template Example_PBIP \
-    --config examples/configs/pbip_config.yaml \
-    --data examples/data/pbip_data.csv \
-    --output-dir ./output \
-    --verbose
-```
-
-## Project Structure
-
-```
-pbi-template-automation/
-├── src/
-│   └── pbi_automation/
-│       ├── __init__.py
-│       ├── cli.py                 # Main CLI interface
-│       ├── core/
-│       │   ├── __init__.py
-│       │   ├── processor.py       # Core processing logic
-│       │   └── validator.py       # Data validation
-│       ├── models/
-│       │   ├── __init__.py
-│       │   ├── config.py          # Configuration models
-│       │   ├── data.py            # Data models
-│       │   └── pbip.py            # PBIP structure models
-│       └── utils/
-│           ├── __init__.py
-│           ├── logger.py          # Logging utilities
-│           ├── file_utils.py      # File operations
-│           └── cli_utils.py       # CLI utilities
-├── Example_PBIP/                  # Example PBIP template
-├── examples/
-│   ├── configs/
-│   │   └── pbip_config.yaml      # Example configuration
-│   └── data/
-│       └── pbip_data.csv         # Example CSV data
-└── output/                       # Generated PBIP projects
-```
-
-## PBIP Template Requirements
-
-Your PBIP template folder must contain:
-
-1. **`.pbip` file**: The main project file (e.g., `Example_PBIP.pbip`)
-2. **`.Report/` folder**: Contains report definition files
-3. **`.SemanticModel/` folder**: Contains `model.bim` with parameters
-
-The tool automatically detects parameters from the `expressions` section in `model.bim`.
+- `typer`: CLI framework
+- `rich`: Terminal output formatting
+- `pyyaml`: YAML configuration parsing
+- `structlog`: Structured logging
 
 ## Development
 
-### Setting up Development Environment
+### Install Development Dependencies
 
 ```bash
-# Install development dependencies
-python install.py
+pip install -e ".[dev]"
+```
 
-# Run tests
+### Run Tests
+
+```bash
 pytest
+```
 
-# Format code
+### Code Formatting
+
+```bash
 black src/ tests/
 isort src/ tests/
-
-# Type checking
-mypy src/
 ```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=pbi_automation --cov-report=html
-
-# Run specific test categories
-pytest -m unit
-pytest -m integration
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- 📧 Email: support@example.com
-- 🐛 Issues: [GitHub Issues](https://github.com/your-org/pbi-template-automation/issues)
-- 📖 Documentation: [Wiki](https://github.com/your-org/pbi-template-automation/wiki)
-
-## Roadmap
-
-- [ ] Web-based configuration interface
-- [ ] Template versioning and management
-- [ ] Integration with Power BI Service API
-- [ ] Real-time parameter validation
-- [ ] Batch processing optimization 
+MIT License - see LICENSE file for details. 

@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 from ..utils.logger import log_info, log_error, log_warning
+from ..utils.cli_utils import show_success_message, show_error_message, show_warning_message
 from ..models.config import Config
 from ..models.data import DataRow
 
@@ -25,10 +26,10 @@ class PBIPProcessor:
                     success_count += 1
                     log_info(f"Generated PBIP folder: {row.get_folder_name()}")
                 else:
-                    log_error(f"Failed to process row {i}: Failed to generate PBIP")
+                    show_error_message(f"Failed to process row {i}: Failed to generate PBIP")
                     
             except Exception as e:
-                log_error(f"Failed to process row {i}: {str(e)}")
+                show_error_message(f"Failed to process row {i}: {str(e)}")
         
         return success_count
     
@@ -55,17 +56,17 @@ class PBIPProcessor:
             model_bim_path = semantic_model_folder / "model.bim"
             
             if not self._update_parameters_in_model_bim(model_bim_path, row):
-                log_error("Failed to update parameters in model.bim")
+                show_error_message("Failed to update parameters in model.bim")
                 return False
             
             # Delete cache.abf file for proper data loading
             if not self._delete_cache_file(semantic_model_folder):
-                log_warning("Failed to delete cache.abf file")
+                show_warning_message("Failed to delete cache.abf file")
             
             return True
             
         except Exception as e:
-            log_error(f"Failed to process row: {str(e)}")
+            show_error_message(f"Failed to process row: {str(e)}")
             return False
     
     def _copy_pbip_folder(self, source_path: Path, dest_path: Path) -> bool:
@@ -80,7 +81,7 @@ class PBIPProcessor:
             return True
             
         except Exception as e:
-            log_error(f"Failed to copy PBIP folder: {str(e)}")
+            show_error_message(f"Failed to copy PBIP folder: {str(e)}")
             return False
     
     def _update_parameters_in_model_bim(self, model_bim_path: Path, row: DataRow) -> bool:
@@ -107,11 +108,11 @@ class PBIPProcessor:
                     new_expression = f'"{new_value}" meta [IsParameterQuery=true, Type="Any", IsParameterQueryRequired=true]'
                     expression["expression"] = new_expression
                     
-                    log_info(f"Updated parameter '{param_name}' to '{new_value}'")
+                    show_success_message(f"Updated parameter '{param_name}' to '{new_value}'")
                     updated = True
             
             if not updated:
-                log_warning("No parameters were updated")
+                show_warning_message("No parameters were updated")
                 return True
             
             # Write the updated model.bim file
@@ -121,7 +122,7 @@ class PBIPProcessor:
             return True
             
         except Exception as e:
-            log_error(f"Failed to update parameters in model.bim: {str(e)}")
+            show_error_message(f"Failed to update parameters in model.bim: {str(e)}")
             return False
     
     def _delete_cache_file(self, semantic_model_folder: Path) -> bool:
@@ -135,11 +136,11 @@ class PBIPProcessor:
                 log_info(f"Deleted cache.abf file: {cache_file}")
                 return True
             else:
-                log_warning(f"cache.abf file not found: {cache_file}")
+                show_warning_message(f"cache.abf file not found: {cache_file}")
                 return True
             
         except Exception as e:
-            log_error(f"Failed to delete cache.abf file: {str(e)}")
+            show_error_message(f"Failed to delete cache.abf file: {str(e)}")
             return False
     
     def _rename_internal_files_and_folders(self, output_folder: Path, report_name: str):
@@ -171,7 +172,7 @@ class PBIPProcessor:
                 with open(new_pbip, 'w', encoding='utf-8') as f:
                     f.write(pbip_data)
         except Exception as e:
-            log_error(f"Failed to rename internal files/folders: {str(e)}")
+            show_error_message(f"Failed to rename internal files/folders: {str(e)}")
 
     def _replace_references_in_files(self, folder: Path, old: str, new: str):
         """Recursively replace all occurrences of old with new in all text files in the folder."""
@@ -186,4 +187,4 @@ class PBIPProcessor:
                         with open(path, 'w', encoding='utf-8') as f:
                             f.write(content)
                 except Exception as e:
-                    log_warning(f"Failed to update references in {path}: {str(e)}") 
+                    show_warning_message(f"Failed to update references in {path}: {str(e)}") 
