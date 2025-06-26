@@ -200,13 +200,13 @@ class PBIPProcessor:
         for path in folder.rglob('*'):
             if path.is_file():
                 try:
-                    # Only process text files
                     with open(path, 'r', encoding='utf-8') as f:
                         content = f.read()
                     if old in content:
-                        content = content.replace(old, new)
-                        with open(path, 'w', encoding='utf-8') as f:
-                            f.write(content)
+                        new_content = content.replace(old, new)
+                        if new_content != content:
+                            with open(path, 'w', encoding='utf-8') as f:
+                                f.write(new_content)
                 except (OSError, UnicodeDecodeError) as e:
                     show_warning_message(f"Failed to update references in {path}: {str(e)}")
                 except Exception as e:

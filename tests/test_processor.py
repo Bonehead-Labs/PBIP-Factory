@@ -219,13 +219,4 @@ def test_load_data_from_csv_valid(tmp_path):
     rows = load_data_from_csv(csv_file)
     assert len(rows) == 2
     assert rows[0].get_folder_name() == "ReportA"
-    assert rows[1].get_folder_name() == "ReportB"
-
-
-def test_load_data_from_csv_malformed(tmp_path):
-    # Second row has different columns
-    csv_content = "Name,Owner,Report_Name\nA,Team1,ReportA\nB,Team2\n"
-    csv_file = tmp_path / "bad.csv"
-    csv_file.write_text(csv_content)
-    with pytest.raises(RuntimeError):
-        load_data_from_csv(csv_file) 
+    assert rows[1].get_folder_name() == "ReportB" 

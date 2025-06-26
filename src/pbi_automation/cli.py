@@ -146,6 +146,12 @@ def run_generation(template: str, config: str, data: str, output_dir: str, verbo
         generated_folders = [row.get_folder_name() for row in data_rows]
         show_generated_folders(generated_folders)
         log_success(f"Successfully generated {success_count} PBIP projects in {output_dir}")
+        # --- Summary report ---
+        failed_count = len(data_rows) - success_count
+        if failed_count > 0:
+            show_warning_message(f"{failed_count} project(s) failed to generate. See errors above.")
+        else:
+            show_success_message("All projects generated successfully!")
         return True
     except (OSError, ValueError) as e:
         show_error_message(f"A file or data error occurred: {str(e)}")
