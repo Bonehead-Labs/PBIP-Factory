@@ -126,8 +126,6 @@ else
     echo -e "\033[33m⚠️  pbi-automation command not found, trying alternative installation...\033[0m"
     # Try installing with pip directly
     pip install -e . --force-reinstall
-    # Also try installing the CLI script manually
-    python -m pip install --editable .
 fi
 
 # Final verification

@@ -136,8 +136,6 @@ try {
     Write-Host "⚠️  pbi-automation command not found, trying alternative installation..." -ForegroundColor Yellow
     # Try installing with pip directly
     pip install -e . --force-reinstall
-    # Also try installing the CLI script manually
-    python -m pip install --editable .
 }
 
 # Final verification

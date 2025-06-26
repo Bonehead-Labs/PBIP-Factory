@@ -55,6 +55,21 @@ Issues = "https://github.com/George-Nizor/_PBI_Template_Automation/issues"
 [tool.hatch.build.targets.wheel]
 packages = ["src/pbi_automation"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/examples",
+    "/Example_PBIP",
+    "*.md",
+    "*.toml",
+    "*.yaml",
+    "*.yml",
+    "*.csv",
+    "*.ps1",
+    "*.sh",
+]
+
 [tool.black]
 line-length = 88
 target-version = ['py39']
