@@ -118,6 +118,26 @@ source .venv/bin/activate
 echo -e "\033[33mInstalling package...\033[0m"
 pip install -e .
 
+# Verify the installation worked
+echo -e "\033[33mVerifying installation...\033[0m"
+if command -v pbi-automation &> /dev/null; then
+    echo -e "\033[32m✅ pbi-automation command found\033[0m"
+else
+    echo -e "\033[33m⚠️  pbi-automation command not found, trying alternative installation...\033[0m"
+    # Try installing with pip directly
+    pip install -e . --force-reinstall
+    # Also try installing the CLI script manually
+    python -m pip install --editable .
+fi
+
+# Final verification
+if command -v pbi-automation &> /dev/null; then
+    echo -e "\033[32m✅ Package installation verified\033[0m"
+else
+    echo -e "\033[31m❌ Package installation failed. Please try running: pip install -e .\033[0m"
+    exit 1
+fi
+
 # Verify installation
 echo -e "\033[32m✅ Installation complete!\033[0m"
 echo -e "\033[32m🎉 PBIP Template Automation is ready to use!\033[0m"
@@ -132,5 +152,8 @@ echo -e "\033[36m   pbi-automation launch\033[0m"
 echo ""
 echo -e "\033[33m💡 Or use the one-liner:\033[0m"
 echo -e "\033[36m   cd $repo_name && source .venv/bin/activate && pbi-automation launch\033[0m"
+echo ""
+echo -e "\033[33m🔧 If the command doesn't work, try:\033[0m"
+echo -e "\033[36m   cd $repo_name && source .venv/bin/activate && python -m pbi_automation.cli launch\033[0m"
 echo ""
 echo -e "\033[32m✨ Happy automating!\033[0m" 

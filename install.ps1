@@ -127,6 +127,28 @@ Write-Host "Activating virtual environment..." -ForegroundColor Yellow
 Write-Host "Installing package..." -ForegroundColor Yellow
 pip install -e .
 
+# Verify the installation worked
+Write-Host "Verifying installation..." -ForegroundColor Yellow
+try {
+    $null = Get-Command pbi-automation -ErrorAction Stop
+    Write-Host "✅ pbi-automation command found" -ForegroundColor Green
+} catch {
+    Write-Host "⚠️  pbi-automation command not found, trying alternative installation..." -ForegroundColor Yellow
+    # Try installing with pip directly
+    pip install -e . --force-reinstall
+    # Also try installing the CLI script manually
+    python -m pip install --editable .
+}
+
+# Final verification
+try {
+    $null = Get-Command pbi-automation -ErrorAction Stop
+    Write-Host "✅ Package installation verified" -ForegroundColor Green
+} catch {
+    Write-Host "❌ Package installation failed. Please try running: pip install -e ." -ForegroundColor Red
+    exit 1
+}
+
 # Verify installation
 Write-Host "✅ Installation complete!" -ForegroundColor Green
 Write-Host "🎉 PBIP Template Automation is ready to use!" -ForegroundColor Green
@@ -141,5 +163,8 @@ Write-Host "   pbi-automation launch" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "💡 Or use the one-liner:" -ForegroundColor Yellow
 Write-Host "   cd $repoName; .venv\Scripts\activate; pbi-automation launch" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "🔧 If the command doesn't work, try:" -ForegroundColor Yellow
+Write-Host "   cd $repoName; .venv\Scripts\activate; python -m pbi_automation.cli launch" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "✨ Happy automating!" -ForegroundColor Green 
