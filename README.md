@@ -21,6 +21,20 @@ These commands will:
 
 **Note:** You can specify a custom installation directory when prompted, or press Enter to use the current directory.
 
+## 🔄 Smart Updates
+
+The installer includes intelligent update logic:
+
+- **Repository Updates**: Always pulls the latest code from GitHub
+- **Version Tracking**: Shows version changes (e.g., "Updated from version 0.1.0 to 0.1.1")
+- **Virtual Environment Management**: Automatically recreates the virtual environment if Python version changes
+- **Safe Reinstallation**: Package is always reinstalled in editable mode (safe and fast)
+
+**Reinstalling/Updating:**
+- Run the same install command again - it will automatically update existing installations
+- No need to manually delete or clean up previous installations
+- Your configuration files and output directories are preserved
+
 ---
 
 ## Overview

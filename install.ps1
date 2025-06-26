@@ -48,20 +48,90 @@ $repoName = "_PBI_Template_Automation"
 
 # Clone or update the repository
 if (Test-Path $repoName) {
-    Write-Host "Repository already exists, updating..." -ForegroundColor Yellow
+    Write-Host "Repository already exists, checking for updates..." -ForegroundColor Yellow
     Set-Location $repoName
+    
+    # Get current version before update
+    $currentVersion = "unknown"
+    if (Test-Path "pyproject.toml") {
+        $pyprojectContent = Get-Content "pyproject.toml" -Raw
+        if ($pyprojectContent -match 'version = "([^"]+)"') {
+            $currentVersion = $matches[1]
+        }
+    }
+    
+    # Update repository
     git pull
+    
+    # Get new version after update
+    $newVersion = "unknown"
+    if (Test-Path "pyproject.toml") {
+        $pyprojectContent = Get-Content "pyproject.toml" -Raw
+        if ($pyprojectContent -match 'version = "([^"]+)"') {
+            $newVersion = $matches[1]
+        }
+    }
+    
+    if ($currentVersion -ne $newVersion) {
+        Write-Host "Updated from version $currentVersion to $newVersion" -ForegroundColor Green
+    } else {
+        Write-Host "Already up to date (version $newVersion)" -ForegroundColor Green
+    }
 } else {
     Write-Host "Cloning repository..." -ForegroundColor Yellow
     git clone $repoUrl
     Set-Location $repoName
+    
+    # Get version of fresh clone
+    $version = "unknown"
+    if (Test-Path "pyproject.toml") {
+        $pyprojectContent = Get-Content "pyproject.toml" -Raw
+        if ($pyprojectContent -match 'version = "([^"]+)"') {
+            $version = $matches[1]
+        }
+    }
+    Write-Host "Installed version $version" -ForegroundColor Green
 }
 
-# Create and activate virtual environment
-Write-Host "Setting up virtual environment..." -ForegroundColor Yellow
+# Check if virtual environment needs recreation
+$recreateVenv = $false
 if (Test-Path ".venv") {
-    Write-Host "Virtual environment already exists" -ForegroundColor Green
+    Write-Host "Virtual environment exists, checking compatibility..." -ForegroundColor Yellow
+    
+    # Check Python version in venv vs current
+    try {
+        $venvPython = ".venv\Scripts\python.exe"
+        if (Test-Path $venvPython) {
+            $venvVersion = & $venvPython --version 2>&1
+            $currentVersion = python --version 2>&1
+            
+            if ($venvVersion -ne $currentVersion) {
+                Write-Host "Python version changed, recreating virtual environment..." -ForegroundColor Yellow
+                Write-Host "Old: $venvVersion" -ForegroundColor Gray
+                Write-Host "New: $currentVersion" -ForegroundColor Gray
+                $recreateVenv = $true
+            } else {
+                Write-Host "Virtual environment is compatible" -ForegroundColor Green
+            }
+        } else {
+            Write-Host "Virtual environment appears corrupted, recreating..." -ForegroundColor Yellow
+            $recreateVenv = $true
+        }
+    } catch {
+        Write-Host "Error checking virtual environment, recreating..." -ForegroundColor Yellow
+        $recreateVenv = $true
+    }
 } else {
+    Write-Host "Creating new virtual environment..." -ForegroundColor Yellow
+    $recreateVenv = $true
+}
+
+# Create or recreate virtual environment
+if ($recreateVenv) {
+    if (Test-Path ".venv") {
+        Remove-Item -Recurse -Force ".venv"
+        Write-Host "Removed old virtual environment" -ForegroundColor Yellow
+    }
     python -m venv .venv
     Write-Host "Virtual environment created" -ForegroundColor Green
 }
