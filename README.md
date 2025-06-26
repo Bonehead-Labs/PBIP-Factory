@@ -1,3 +1,25 @@
+# PBIP Template Automation Tool
+
+## 🚀 Quick Install
+
+**Windows (PowerShell):**
+```powershell
+irm "https://raw.githubusercontent.com/George-Nizor/_PBI_Template_Automation/main/install.ps1" | iex
+```
+
+**Linux/Mac (Bash):**
+```bash
+curl -sSL https://raw.githubusercontent.com/George-Nizor/_PBI_Template_Automation/main/install.sh | bash
+```
+
+These commands will:
+- Clone the repository
+- Set up a Python virtual environment
+- Install all dependencies
+- Launch the tool in interactive mode
+
+---
+
 # Power BI Template Automation
 
 A Python tool for automating Power BI template (PBIP) generation with parameter updates. This tool takes a master PBIP template and generates multiple independent Power BI projects by updating parameters based on CSV data.

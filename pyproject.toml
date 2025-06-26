@@ -47,10 +47,10 @@ dev = [
 pbi-automation = "pbi_automation.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/your-org/pbi-template-automation"
-Repository = "https://github.com/your-org/pbi-template-automation"
-Documentation = "https://github.com/your-org/pbi-template-automation#readme"
-Issues = "https://github.com/your-org/pbi-template-automation/issues"
+Homepage = "https://github.com/George-Nizor/_PBI_Template_Automation"
+Repository = "https://github.com/George-Nizor/_PBI_Template_Automation"
+Documentation = "https://github.com/George-Nizor/_PBI_Template_Automation#readme"
+Issues = "https://github.com/George-Nizor/_PBI_Template_Automation/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pbi_automation"]
