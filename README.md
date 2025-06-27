@@ -40,7 +40,7 @@ pbi-automation launch
 The installer includes intelligent update logic:
 
 - **Repository Updates**: Always pulls the latest code from GitHub
-- **Version Tracking**: Shows version changes (e.g., "Updated from version 0.1.0 to 0.1.1")
+- **Version Tracking**: Shows version changes (e.g., "Updated from version 1.0.0 to 1.0.1")
 - **Virtual Environment Management**: Automatically recreates the virtual environment if Python version changes
 - **Safe Reinstallation**: Package is always reinstalled in editable mode (safe and fast)
 
@@ -61,7 +61,7 @@ The installer includes intelligent update logic:
 - **Clean output**: Remove cache files for proper data loading
 - **Simple configuration**: YAML-based configuration with CSV data input
 - **Interactive CLI**: User-friendly command-line interface with validation
-- **Template analysis**: Analyze template format and parameters with the `detect` command
+- **Template discovery**: Automatically discover available templates, configs, and data files
 - **Interactive config editing**: Edit YAML configuration files with the `edit` command
 - **Robust error handling**: Comprehensive error reporting and recovery
 
@@ -109,20 +109,31 @@ pbi-automation launch
 # Generate PBIP projects
 pbi-automation generate \
     --template Example_PBIP \
-    --config examples/configs/pbip_config.yaml \
-    --data examples/data/pbip_data.csv \
-    --output-dir output \
+    --config configs/pbip_config.yaml \
+    --data data/pbip_data.csv \
+    --output-dir outputs \
     --verbose
 
-# Analyze template format and parameters
-pbi-automation detect \
-    --template Example_PBIP \
-    --verbose
+# List available templates, configs, or data files
+pbi-automation list templates
+pbi-automation list configs
+pbi-automation list data
 
 # Edit configuration interactively
 pbi-automation edit \
-    --config examples/configs/pbip_config.yaml
+    --config configs/pbip_config.yaml
+
+# Show version information
+pbi-automation version
 ```
+
+## Available Commands
+
+- **`generate`**: Generate PBIP projects from template with parameter updates
+- **`list`**: List available templates, configs, or data files
+- **`launch`**: Launch PBIP-TEMPLATE-PAL in interactive mode
+- **`edit`**: Edit YAML configuration file interactively
+- **`version`**: Show version information
 
 ## Supported Formats
 
@@ -141,42 +152,27 @@ The tool supports both Power BI semantic model formats:
 
 The tool automatically detects the format and applies the appropriate parameter update logic.
 
-## Template Analysis
-
-Use the `detect` command to analyze your PBIP template:
-
-```bash
-pbi-automation detect --template YourTemplate
-```
-
-This will show:
-- **Model Format**: BIM or TMDL
-- **Parameters Found**: List of all parameters with current values
-- **Template Structure**: Validation of required files and folders
-
 ## File Structure
 
 ```
 project/
-├── Example_PBIP/                    # Master template
-│   ├── Example_PBIP.pbip
-│   ├── Example_PBIP.Report/
-│   └── Example_PBIP.SemanticModel/
-├── examples/
-│   ├── configs/
-│   │   └── pbip_config.yaml        # Parameter configuration
-│   └── data/
-│       └── pbip_data.csv           # Data for generation
-├── output/                          # Generated projects
+├── templates/                     # Master templates
+│   └── Example_PBIP/             # Example template
+├── configs/                       # Configuration files
+│   ├── pbip_config.yaml          # Main configuration
+│   └── example_config.yaml       # Example configuration
+├── data/                          # Data files
+│   └── pbip_data.csv             # CSV data for generation
+├── outputs/                       # Generated projects
 │   ├── North_Report/
 │   ├── South_Report/
 │   └── ...
-└── src/pbi_automation/              # Source code
+└── src/pbi_automation/            # Source code
 ```
 
 ## Configuration
 
-### YAML Configuration (`pbip_config.yaml`)
+### YAML Configuration (`configs/pbip_config.yaml`)
 
 ```yaml
 # Configuration for PBIP parameter automation
@@ -202,7 +198,7 @@ parameters:
   #   type: "boolean"
 
 output:
-  directory: "./output"
+  directory: "./outputs"
 
 logging:
   level: "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
@@ -210,7 +206,7 @@ logging:
   file: "pbi_automation.log"  # Optional log file
 ```
 
-### CSV Data (`pbip_data.csv`)
+### CSV Data (`data/pbip_data.csv`)
 
 ```csv
 Report_Name,Name,Owner

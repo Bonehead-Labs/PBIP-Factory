@@ -17,7 +17,7 @@ Your master template should be a PBIP folder with:
 
 ### Example Template Structure (BIM Format)
 ```
-Example_PBIP/
+templates/Example_PBIP/
 ├── Example_PBIP.pbip
 ├── Example_PBIP.Report/
 │   ├── definition.pbir
@@ -31,7 +31,7 @@ Example_PBIP/
 
 ### Example Template Structure (TMDL Format)
 ```
-Example_PBIP/
+templates/Example_PBIP/
 ├── Example_PBIP.pbip
 ├── Example_PBIP.Report/
 │   ├── definition.pbir
@@ -94,7 +94,7 @@ table Name
 
 ## Step 2: Create Configuration File
 
-Create a YAML configuration file (`pbip_config.yaml`):
+Create a YAML configuration file (`configs/pbip_config.yaml`):
 
 ```yaml
 # Configuration for PBIP parameter automation
@@ -120,7 +120,7 @@ parameters:
   #   type: "boolean"
 
 output:
-  directory: "./output"
+  directory: "./outputs"
 
 logging:
   level: "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
@@ -139,7 +139,7 @@ logging:
 
 ## Step 3: Prepare CSV Data
 
-Create a CSV file (`pbip_data.csv`) with your data:
+Create a CSV file (`data/pbip_data.csv`) with your data:
 
 ```csv
 Report_Name,Name,Owner
@@ -161,18 +161,18 @@ Central_Report,Central_Report,IT_Team
 ```bash
 pbi-automation generate \
     --template Example_PBIP \
-    --config pbip_config.yaml \
-    --data pbip_data.csv \
-    --output-dir output
+    --config configs/pbip_config.yaml \
+    --data data/pbip_data.csv \
+    --output-dir outputs
 ```
 
 ### With Verbose Logging
 ```bash
 pbi-automation generate \
     --template Example_PBIP \
-    --config pbip_config.yaml \
-    --data pbip_data.csv \
-    --output-dir output \
+    --config configs/pbip_config.yaml \
+    --data data/pbip_data.csv \
+    --output-dir outputs \
     --verbose
 ```
 
@@ -181,17 +181,22 @@ pbi-automation generate \
 pbi-automation launch
 ```
 
-### Template Analysis
+### List Available Resources
 ```bash
-pbi-automation detect \
-    --template Example_PBIP \
-    --verbose
+# List available templates
+pbi-automation list templates
+
+# List available configuration files
+pbi-automation list configs
+
+# List available data files
+pbi-automation list data
 ```
 
 ### Edit Configuration
 ```bash
 pbi-automation edit \
-    --config pbip_config.yaml
+    --config configs/pbip_config.yaml
 ```
 
 ### Command Options
@@ -200,13 +205,14 @@ pbi-automation edit \
 - `--data, -d`: Path to CSV data file
 - `--output-dir, -o`: Output directory for generated projects
 - `--verbose, -v`: Enable verbose logging
+- `--interactive, -i`: Use interactive selection
 
 ## Step 5: Verify Output
 
 After running the tool, check your output directory:
 
 ```
-output/
+outputs/
 ├── North_Report/
 │   ├── North_Report.pbip
 │   ├── North_Report.Report/
@@ -276,31 +282,47 @@ output/
 
 ## Advanced Usage
 
-### Template Analysis
+### Interactive Mode
 
-Use the `detect` command to analyze your template before generation:
+Use the `launch` command for a fully interactive experience:
 
 ```bash
-pbi-automation detect --template YourTemplate --verbose
+pbi-automation launch
 ```
 
-This will show:
-- Model format (BIM or TMDL)
-- All parameters found with current values
-- Template structure validation
+This provides:
+- Interactive template selection
+- Interactive configuration selection
+- Interactive data file selection
+- Guided setup process
 
 ### Interactive Configuration Editing
 
 Use the `edit` command to modify your YAML configuration:
 
 ```bash
-pbi-automation edit --config pbip_config.yaml
+pbi-automation edit --config configs/pbip_config.yaml
 ```
 
 This provides an interactive menu to:
 - Add/remove parameters
 - Modify output settings
 - Configure logging options
+
+### Resource Discovery
+
+Use the `list` command to discover available resources:
+
+```bash
+# See what templates are available
+pbi-automation list templates
+
+# See what configuration files are available
+pbi-automation list configs
+
+# See what data files are available
+pbi-automation list data
+```
 
 ### Batch Processing
 
@@ -312,4 +334,5 @@ For large datasets, the tool processes each row independently. If one row fails,
 2. **Parameter Naming**: Use consistent parameter names between your template and CSV data
 3. **Testing**: Test with a small dataset first before processing large amounts of data
 4. **Backup**: Keep a backup of your master template before making changes
-5. **Validation**: Use the `detect` command to validate your template structure and parameters 
+5. **Organization**: Use the provided directory structure (`templates/`, `configs/`, `data/`, `outputs/`) for better organization
+6. **Discovery**: Use the `list` command to discover available resources before running generation 
