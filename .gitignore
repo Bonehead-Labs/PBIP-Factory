@@ -44,7 +44,12 @@ Thumbs.db
 # Logs
 *.log 
 
-#Files
-POC for changing LINK contracts
-pbip_config2.yaml
-pbip_data2.csv
+# Ignore only contents not folders
+configs/*
+!configs/.gitkeep
+data/*
+!data/.gitkeep
+templates/*
+!templates/.gitkeep
+outputs/*
+!outputs/.gitkeep

@@ -6,6 +6,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import print as rprint
 import inquirer
+from typing import Optional
 
 from .core.processor import PBIPProcessor
 from .core.validator import PBIPValidator
@@ -20,6 +21,7 @@ from .utils.cli_utils import (
 )
 from .utils.yaml_editor import edit_yaml_config
 from .utils.tmdl_parser import TMDLParser
+from .utils.discovery import DiscoveryManager
 
 app = typer.Typer(name="pbip-template-pal", help="PBIP Template Automation Tool")
 console = Console()
@@ -99,6 +101,135 @@ def prompt_for_verbose() -> bool:
     ]
     answers = inquirer.prompt(questions)
     return answers['verbose']
+
+
+def run_interactive_selection(discovery: DiscoveryManager) -> tuple[str, str, str, str]:
+    """Run interactive selection for template, config, data, and output, with manual entry option."""
+    # Select template
+    templates = discovery.get_available_templates()
+    if not templates:
+        show_error_message("No templates found. Please add templates to the templates/ directory.")
+        return None, None, None, None
+
+    template_choices = [f"{t['name']} ({t['type']})" for t in templates]
+    template_choices.append("Other (type manually)")
+    questions = [
+        inquirer.List('template',
+                     message='Select a template:',
+                     choices=template_choices)
+    ]
+    answers = inquirer.prompt(questions)
+    if answers['template'] == "Other (type manually)":
+        manual = inquirer.prompt([
+            inquirer.Text('manual_template', message='Enter the path to your PBIP template folder')
+        ])
+        template_path = manual['manual_template']
+    else:
+        selected_template = templates[template_choices.index(answers['template'])]
+        template_path = selected_template['path']
+
+    # Select config
+    configs = discovery.get_available_configs()
+    if not configs:
+        show_error_message("No configuration files found. Please add configs to the configs/ directory.")
+        return None, None, None, None
+
+    config_choices = [f"{c['name']} ({c['type']})" for c in configs]
+    config_choices.append("Other (type manually)")
+    questions = [
+        inquirer.List('config',
+                     message='Select a configuration file:',
+                     choices=config_choices)
+    ]
+    answers = inquirer.prompt(questions)
+    if answers['config'] == "Other (type manually)":
+        manual = inquirer.prompt([
+            inquirer.Text('manual_config', message='Enter the path to your configuration YAML file')
+        ])
+        config_path = manual['manual_config']
+    else:
+        selected_config = configs[config_choices.index(answers['config'])]
+        config_path = selected_config['path']
+
+    # Select data
+    data_files = discovery.get_available_data_files()
+    if not data_files:
+        show_error_message("No data files found. Please add CSV files to the data/ directory.")
+        return None, None, None, None
+
+    data_choices = [f"{d['name']} ({d['type']})" for d in data_files]
+    data_choices.append("Other (type manually)")
+    questions = [
+        inquirer.List('data',
+                     message='Select a data file:',
+                     choices=data_choices)
+    ]
+    answers = inquirer.prompt(questions)
+    if answers['data'] == "Other (type manually)":
+        manual = inquirer.prompt([
+            inquirer.Text('manual_data', message='Enter the path to your CSV data file')
+        ])
+        data_path = manual['manual_data']
+    else:
+        selected_data = data_files[data_choices.index(answers['data'])]
+        data_path = selected_data['path']
+
+    # Get output directory
+    if isinstance(template_path, str) and Path(template_path).exists():
+        template_name = Path(template_path).name
+    else:
+        template_name = "output"
+    output_path = discovery.get_output_path(template_name)
+
+    return template_path, config_path, data_path, str(output_path)
+
+
+def resolve_template_path(template: str, discovery: DiscoveryManager) -> Optional[str]:
+    """Resolve template name to path."""
+    if Path(template).exists():
+        return template
+    
+    template_path = discovery.get_template_path(template)
+    if template_path:
+        return str(template_path)
+    
+    show_error_message(f"Template not found: {template}")
+    return None
+
+
+def resolve_config_path(config: str, discovery: DiscoveryManager) -> Optional[str]:
+    """Resolve config name to path."""
+    if Path(config).exists():
+        return config
+    
+    config_path = discovery.get_config_path(config)
+    if config_path:
+        return str(config_path)
+    
+    show_error_message(f"Configuration file not found: {config}")
+    return None
+
+
+def resolve_data_path(data: str, discovery: DiscoveryManager) -> Optional[str]:
+    """Resolve data name to path."""
+    if Path(data).exists():
+        return data
+    
+    data_path = discovery.get_data_path(data)
+    if data_path:
+        return str(data_path)
+    
+    show_error_message(f"Data file not found: {data}")
+    return None
+
+
+def resolve_output_path(template_path: str, output_dir: Optional[str], discovery: DiscoveryManager) -> str:
+    """Resolve output directory."""
+    if output_dir:
+        return output_dir
+    
+    template_name = Path(template_path).name
+    return str(discovery.get_output_path(template_name))
 
 
 def run_generation(template: str, config: str, data: str, output_dir: str, verbose: bool = False):
@@ -270,20 +401,58 @@ def run_detection(template: str, verbose: bool = False):
 
 @app.command()
 def generate(
-    template: str = typer.Option(..., "--template", "-t", help="Path to PBIP template folder"),
-    config: str = typer.Option(..., "--config", "-c", help="Path to configuration YAML file"),
-    data: str = typer.Option(..., "--data", "-d", help="Path to CSV data file"),
-    output_dir: str = typer.Option(..., "--output-dir", "-o", help="Output directory for generated projects"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
+    template: Optional[str] = typer.Option(None, "--template", "-t", help="Template name or path"),
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="Config name or path"),
+    data: Optional[str] = typer.Option(None, "--data", "-d", help="Data file name or path"),
+    output_dir: Optional[str] = typer.Option(None, "--output-dir", "-o", help="Output directory"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
+    interactive: bool = typer.Option(False, "--interactive", "-i", help="Use interactive selection")
 ):
     """Generate PBIP projects from template with parameter updates."""
     
     # Show splash screen
     show_splash_screen()
     
+    discovery = DiscoveryManager()
+    
+    # If no arguments provided, use interactive mode
+    if not any([template, config, data]) or interactive:
+        template, config, data, output_dir = run_interactive_selection(discovery)
+    else:
+        # Resolve names to paths
+        template = resolve_template_path(template, discovery)
+        config = resolve_config_path(config, discovery)
+        data = resolve_data_path(data, discovery)
+        output_dir = resolve_output_path(template, output_dir, discovery)
+    
+    if not all([template, config, data]):
+        show_error_message("Missing required parameters. Use --interactive for guided selection.")
+        raise typer.Exit(1)
+    
     success = run_generation(template, config, data, output_dir, verbose)
     
     if not success:
+        raise typer.Exit(1)
+
+
+@app.command()
+def list(
+    item_type: str = typer.Argument(..., help="Type of items to list: templates, configs, data")
+):
+    """List available templates, configs, or data files."""
+    discovery = DiscoveryManager()
+    
+    if item_type.lower() == "templates":
+        templates = discovery.get_available_templates()
+        console.print(discovery.format_template_list(templates))
+    elif item_type.lower() == "configs":
+        configs = discovery.get_available_configs()
+        console.print(discovery.format_config_list(configs))
+    elif item_type.lower() == "data":
+        data_files = discovery.get_available_data_files()
+        console.print(discovery.format_data_list(data_files))
+    else:
+        show_error_message(f"Unknown item type: {item_type}. Use: templates, configs, or data")
         raise typer.Exit(1)
 
 
@@ -293,6 +462,7 @@ def launch():
     show_splash_screen()
     show_interactive_header()
     show_help_menu()
+    discovery = DiscoveryManager()
     
     while True:
         try:
@@ -374,11 +544,8 @@ def launch():
                 console.print("[bold cyan]Let's generate some PBIP projects! 🚀[/bold cyan]")
                 console.print()
                 
-                # Prompt for all arguments
-                template = prompt_for_template()
-                config = prompt_for_config()
-                data = prompt_for_data()
-                output_dir = prompt_for_output()
+                # Use new interactive selection for template/config/data
+                template, config, data, output_dir = run_interactive_selection(discovery)
                 verbose = prompt_for_verbose()
                 
                 if all([template, config, data, output_dir]):

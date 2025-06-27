@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List
 from ..utils.logger import log_info, log_error, log_warning
-from ..utils.cli_utils import show_success_message, show_error_message, show_warning_message
+from ..utils.cli_utils import show_success_message, show_error_message, show_warning_message, show_info_message
 from ..utils.tmdl_parser import TMDLParser
 from ..models.config import Config
 from ..models.data import DataRow
@@ -171,26 +171,55 @@ class PBIPProcessor:
                 show_warning_message("No .tmdl files found in semantic model folder")
                 return True
 
-            # For each parameter in the row, replace all occurrences of the old value with the new value in all .tmdl files
+            # For each parameter in the row, update all instances of its value in all TMDL files
             updated_any = False
             for param_name, new_value in row.data.items():
+                # First, we need to find the current value of this parameter
+                # Look for the parameter definition in TMDL files
+                current_value = None
                 for tmdl_file in tmdl_files:
                     try:
                         with open(tmdl_file, 'r', encoding='utf-8') as f:
                             content = f.read()
-                        # Replace only if the old value is present
-                        if param_name in content or new_value in content:
-                            # Replace all occurrences of the old value with the new value
-                            # (We don't know the old value, so we just ensure the new value is present for this param)
-                            # This is a best-effort approach
-                            content_new = content.replace(param_name, new_value)
-                            if content_new != content:
+                        
+                        # Look for parameter definition: table ParamName ... source = "value" meta [IsParameterQuery=true, ...]
+                        import re
+                        table_pattern = rf'table\s+{re.escape(param_name)}\s*\n.*?source\s*=\s*"([^"]+)"\s*meta\s*\[IsParameterQuery=true'
+                        match = re.search(table_pattern, content, re.DOTALL | re.MULTILINE)
+                        
+                        if match:
+                            current_value = match.group(1)
+                            break
+                    except Exception:
+                        continue
+                
+                if current_value is None:
+                    show_warning_message(f"Could not find current value for parameter '{param_name}'")
+                    continue
+                
+                if current_value == new_value:
+                    show_info_message(f"Parameter '{param_name}' already has value '{new_value}'")
+                    continue
+                
+                # Now update all instances of the current value to the new value in all TMDL files
+                for tmdl_file in tmdl_files:
+                    try:
+                        with open(tmdl_file, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        # Replace all instances of the old value with the new value
+                        if current_value in content:
+                            new_content = content.replace(current_value, new_value)
+                            if new_content != content:
                                 with open(tmdl_file, 'w', encoding='utf-8') as f:
-                                    f.write(content_new)
+                                    f.write(new_content)
                                 updated_any = True
+                                show_success_message(f"Updated parameter '{param_name}' from '{current_value}' to '{new_value}' in {tmdl_file.name}")
+                                
                     except Exception as e:
                         show_warning_message(f"Failed to update {param_name} in {tmdl_file}: {str(e)}")
                         continue
+                        
             if updated_any:
                 show_success_message("Updated parameter values in TMDL files")
             else:
