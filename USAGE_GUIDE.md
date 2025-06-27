@@ -55,25 +55,49 @@ Parameters should be defined in the `expressions` section of `model.bim`:
 Create a YAML configuration file (`pbip_config.yaml`):
 
 ```yaml
+# Configuration for PBIP parameter automation
+# This file defines how CSV columns map to parameters in the model.bim file
+
 parameters:
-  - name: Name
-    type: string
-  - name: Owner
-    type: string
+  # String parameters
+  - name: "Name"           # Must match parameter name in model.bim
+    type: "string"         # Data type for validation and conversion
+  
+  - name: "Owner"
+    type: "string"
+  
+  # Numeric parameters (if you add them to your model.bim)
+  # - name: "Budget"
+  #   type: "float"
+  
+  # - name: "Year"
+  #   type: "integer"
+  
+  # Boolean parameters (if you add them to your model.bim)
+  # - name: "IsActive"
+  #   type: "boolean"
 
 output:
-  folder_naming: "{Name}_{Owner}"
+  # Naming pattern for generated folders
+  # Use any CSV column names in curly braces
+  naming_pattern: "{Name}_{Owner}"
+  directory: "./output"
 
 logging:
-  level: INFO
+  level: "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
+  format: "json"          # Log format: json, text
+  file: "pbi_automation.log"  # Optional log file
 ```
 
 **Configuration Options:**
 - `parameters`: List of parameters to update
   - `name`: Parameter name (must match model.bim)
   - `type`: Parameter type (string, number, etc.)
-- `output.folder_naming`: Pattern for output folder names
+- `output.naming_pattern`: Pattern for output folder names
+- `output.directory`: Output directory path
 - `logging.level`: Logging verbosity (DEBUG, INFO, WARNING, ERROR)
+- `logging.format`: Log format (json, text)
+- `logging.file`: Optional log file path
 
 ## Step 3: Prepare CSV Data
 
@@ -97,7 +121,7 @@ Central_Report,Central_Report,IT_Team
 
 ### Basic Command
 ```bash
-python -m src.pbi_automation.cli generate \
+pbi-automation generate \
     --template Example_PBIP \
     --config pbip_config.yaml \
     --data pbip_data.csv \
@@ -106,12 +130,17 @@ python -m src.pbi_automation.cli generate \
 
 ### With Verbose Logging
 ```bash
-python -m src.pbi_automation.cli generate \
+pbi-automation generate \
     --template Example_PBIP \
     --config pbip_config.yaml \
     --data pbip_data.csv \
     --output-dir output \
     --verbose
+```
+
+### Interactive Mode
+```bash
+pbi-automation launch
 ```
 
 ### Command Options
@@ -200,7 +229,9 @@ parameters:
   - name: Owner
     type: string
   - name: Year
-    type: number
+    type: integer
+  - name: Budget
+    type: float
   - name: IsActive
     type: boolean
 ```
@@ -217,7 +248,7 @@ For processing many projects:
 
 ```bash
 # Example CI/CD script
-python -m src.pbi_automation.cli generate \
+pbi-automation generate \
     --template $TEMPLATE_PATH \
     --config $CONFIG_PATH \
     --data $DATA_PATH \

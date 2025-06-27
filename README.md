@@ -137,17 +137,38 @@ project/
 ### YAML Configuration (`pbip_config.yaml`)
 
 ```yaml
+# Configuration for PBIP parameter automation
+# This file defines how CSV columns map to parameters in the model.bim file
+
 parameters:
-  - name: Name
-    type: string
-  - name: Owner
-    type: string
+  # String parameters
+  - name: "Name"           # Must match parameter name in model.bim
+    type: "string"         # Data type for validation and conversion
+  
+  - name: "Owner"
+    type: "string"
+  
+  # Numeric parameters (if you add them to your model.bim)
+  # - name: "Budget"
+  #   type: "float"
+  
+  # - name: "Year"
+  #   type: "integer"
+  
+  # Boolean parameters (if you add them to your model.bim)
+  # - name: "IsActive"
+  #   type: "boolean"
 
 output:
-  folder_naming: "{Name}_{Owner}"
+  # Naming pattern for generated folders
+  # Use any CSV column names in curly braces
+  naming_pattern: "{Name}_{Owner}"
+  directory: "./output"
 
 logging:
-  level: INFO
+  level: "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
+  format: "json"          # Log format: json, text
+  file: "pbi_automation.log"  # Optional log file
 ```
 
 ### CSV Data (`pbip_data.csv`)
@@ -157,6 +178,8 @@ Report_Name,Name,Owner
 North_Report,North_Report,Marketing_Team
 South_Report,South_Report,Sales_Team
 East_Report,East_Report,Finance_Team
+West_Report,West_Report,HR_Team
+Central_Report,Central_Report,IT_Team
 ```
 
 **Column mapping:**
@@ -196,4 +219,11 @@ pytest
 
 ### Code Formatting
 
+```bash
+black src/
+isort src/
 ```
+
+## Documentation
+
+For detailed usage instructions and troubleshooting, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
