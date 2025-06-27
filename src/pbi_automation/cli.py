@@ -18,6 +18,7 @@ from .utils.cli_utils import (
     show_generated_folders, show_config_summary, show_processing_header,
     show_completion_message, show_interactive_header, show_help_menu
 )
+from .utils.yaml_editor import edit_yaml_config
 
 app = typer.Typer(name="pbip-template-pal", help="PBIP Template Automation Tool")
 console = Console()
@@ -196,7 +197,7 @@ def launch():
             questions = [
                 inquirer.List('command',
                             message='What would you like to do?',
-                            choices=['generate', 'version', 'help', 'exit'])
+                            choices=['generate', 'edit', 'version', 'help', 'exit'])
             ]
             answers = inquirer.prompt(questions)
             
@@ -215,6 +216,30 @@ def launch():
                 console.print()
                 
             elif command == 'help':
+                show_help_menu()
+                
+            elif command == 'edit':
+                console.print()
+                console.print("[bold cyan]Let's edit your configuration! ⚙️[/bold cyan]")
+                console.print()
+                
+                # Prompt for config file
+                config = prompt_for_config()
+                
+                if config:
+                    console.print()
+                    success = edit_yaml_config(Path(config), create_if_missing=True)
+                    
+                    if success:
+                        console.print()
+                        console.print("[bold green]Configuration editing completed! 🎉[/bold green]")
+                    else:
+                        console.print()
+                        console.print("[bold red]Configuration editing failed. Please check the errors above.[/bold red]")
+                else:
+                    show_error_message("Configuration file path is required. Please try again.")
+                
+                console.print()
                 show_help_menu()
                 
             elif command == 'generate':
@@ -251,6 +276,31 @@ def launch():
         except Exception as e:
             show_error_message(f"An error occurred: {str(e)}")
             console.print()
+
+
+@app.command()
+def edit(
+    config: str = typer.Option("examples/configs/pbip_config.yaml", "--config", "-c", help="Path to configuration YAML file to edit"),
+    create: bool = typer.Option(False, "--create", help="Create new configuration file if it doesn't exist")
+):
+    """Edit YAML configuration file interactively."""
+    
+    # Show splash screen
+    show_splash_screen()
+    
+    config_path = Path(config)
+    
+    # Check if file exists
+    if not config_path.exists() and not create:
+        show_error_message(f"Configuration file not found: {config}")
+        show_info_message("Use --create flag to create a new configuration file")
+        raise typer.Exit(1)
+    
+    # Start the interactive editor
+    success = edit_yaml_config(config_path, create_if_missing=create)
+    
+    if not success:
+        raise typer.Exit(1)
 
 
 @app.command()
