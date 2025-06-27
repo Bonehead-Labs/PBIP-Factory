@@ -33,6 +33,7 @@ dependencies = [
     "ruamel.yaml>=0.18.0",
     "structlog>=23.0.0",
     "inquirer>=3.0.0",
+    "pyfiglet>=1.0.0",
 ]
 
 [project.optional-dependencies]

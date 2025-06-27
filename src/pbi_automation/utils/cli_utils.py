@@ -4,32 +4,33 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskPr
 from rich.table import Table
 from rich.text import Text
 from rich import print as rprint
+import pyfiglet
 import time
 
 console = Console()
 
 def show_splash_screen():
     """Display the ASCII art splash screen."""
-    splash_art = """
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                                                              ║
-    ║   ██████╗ ██████╗ ██╗   ██╗██████╗  █████╗ ██╗               ║
-    ║   ██╔══██╗██╔══██╗██║   ██║██╔══██╗██╔══██╗██║               ║
-    ║   ██████╔╝██████╔╝██║   ██║██████╔╝███████║██║               ║
-    ║   ██╔═══╝ ██╔══██╗██║   ██║██╔═══╝ ██╔══██║██║               ║
-    ║   ██║     ██████╔╝╚██████╔╝██║     ██║  ██║███████╗          ║
-    ║   ╚═╝     ╚═════╝  ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚══════╝          ║
-    ║                                                              ║
-    ║              [bold blue]PBIP-TEMPLATE-PAL[/bold blue]        ║
-    ║              [dim]Generate PBIP projects with ease[/dim]     ║
-    ║                                                              ║
-    ╚══════════════════════════════════════════════════════════════╝
-    """
+    # Create the main title with pyfiglet using a cleaner font
+    title = pyfiglet.figlet_format("PBIP", font="big")
+    #set slanted subtitle with smaller size
+    subtitle = pyfiglet.figlet_format("TEMPLATE-PAL", font="slant", width=100)
     
+    # Create a clean splash screen without double borders
+    splash_content = f"""[bold blue]{title}[/bold blue]
+[bold cyan]{subtitle}[/bold cyan]
+
+[dim]Generate Power BI projects with ease[/dim]
+
+[bold green]Version: 1.0.0[/bold green]
+"""
+    
+    # Use a simple panel without extra borders
     panel = Panel(
-        splash_art,
+        splash_content,
         border_style="blue",
-        padding=(1, 2)
+        padding=(1, 2),
+        title="[bold white]Power BI Template Automation[/bold white]"
     )
     console.print(panel)
     console.print()
