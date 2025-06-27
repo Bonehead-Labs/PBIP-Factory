@@ -120,6 +120,7 @@ def show_help_menu():
 [bold]Available Commands:[/bold]
 
 [cyan]generate[/cyan] - Start PBIP generation with interactive prompts
+[cyan]detect[/cyan] - Analyze PBIP template format and parameters
 [cyan]edit[/cyan] - Edit YAML configuration file interactively
 [cyan]version[/cyan] - Show version information
 [cyan]help[/cyan] - Show this help menu

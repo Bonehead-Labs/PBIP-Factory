@@ -1,5 +1,7 @@
 # PBIP Template Automation Tool
 
+A Python tool for automating Power BI template (PBIP) generation with parameter updates. This tool takes a master PBIP template and generates multiple independent Power BI projects by updating parameters based on CSV data.
+
 ## 🚀 Quick Install
 
 **Windows (PowerShell):**
@@ -49,18 +51,18 @@ The installer includes intelligent update logic:
 
 ---
 
-## Overview
-
-A Python tool for automating Power BI template (PBIP) generation with parameter updates. This tool takes a master PBIP template and generates multiple independent Power BI projects by updating parameters based on CSV data.
-
 ## Features
 
 - **Template-based generation**: Use a master PBIP template as the foundation
 - **Parameter automation**: Update semantic model parameters from CSV data
+- **Dual format support**: Supports both BIM and TMDL (Tabular Model Definition Language) formats
+- **Format detection**: Automatically detects and validates template format
 - **Unique project names**: Automatically rename all internal references for unique, publishable projects
 - **Clean output**: Remove cache files for proper data loading
 - **Simple configuration**: YAML-based configuration with CSV data input
 - **Interactive CLI**: User-friendly command-line interface with validation
+- **Template analysis**: Analyze template format and parameters with the `detect` command
+- **Interactive config editing**: Edit YAML configuration files with the `edit` command
 - **Robust error handling**: Comprehensive error reporting and recovery
 
 ## Quick Start: Self-Contained Setup
@@ -104,13 +106,53 @@ pbi-automation launch
 
 ### Command Line Mode
 ```bash
+# Generate PBIP projects
 pbi-automation generate \
     --template Example_PBIP \
     --config examples/configs/pbip_config.yaml \
     --data examples/data/pbip_data.csv \
     --output-dir output \
     --verbose
+
+# Analyze template format and parameters
+pbi-automation detect \
+    --template Example_PBIP \
+    --verbose
+
+# Edit configuration interactively
+pbi-automation edit \
+    --config examples/configs/pbip_config.yaml
 ```
+
+## Supported Formats
+
+The tool supports both Power BI semantic model formats:
+
+### BIM Format (Legacy)
+- Uses `model.bim` file in JSON format
+- Parameters are stored in `model.expressions` array
+- Compatible with older Power BI Desktop versions
+
+### TMDL Format (Modern)
+- Uses `definition/model.tmdl` and `definition/tables/*.tmdl` files
+- Parameters are stored as individual table files with `IsParameterQuery=true`
+- Modern format used by newer Power BI Desktop versions
+- More readable and maintainable structure
+
+The tool automatically detects the format and applies the appropriate parameter update logic.
+
+## Template Analysis
+
+Use the `detect` command to analyze your PBIP template:
+
+```bash
+pbi-automation detect --template YourTemplate
+```
+
+This will show:
+- **Model Format**: BIM or TMDL
+- **Parameters Found**: List of all parameters with current values
+- **Template Structure**: Validation of required files and folders
 
 ## File Structure
 
@@ -138,31 +180,28 @@ project/
 
 ```yaml
 # Configuration for PBIP parameter automation
-# This file defines how CSV columns map to parameters in the model.bim file
+# This file defines how CSV columns map to parameters in the semantic model
 
 parameters:
   # String parameters
-  - name: "Name"           # Must match parameter name in model.bim
+  - name: "Name"           # Must match parameter name in semantic model
     type: "string"         # Data type for validation and conversion
   
   - name: "Owner"
     type: "string"
   
-  # Numeric parameters (if you add them to your model.bim)
+  # Numeric parameters (if you add them to your semantic model)
   # - name: "Budget"
   #   type: "float"
   
   # - name: "Year"
   #   type: "integer"
   
-  # Boolean parameters (if you add them to your model.bim)
+  # Boolean parameters (if you add them to your semantic model)
   # - name: "IsActive"
   #   type: "boolean"
 
 output:
-  # Naming pattern for generated folders
-  # Use any CSV column names in curly braces
-  naming_pattern: "{Name}_{Owner}"
   directory: "./output"
 
 logging:
@@ -192,7 +231,7 @@ Central_Report,Central_Report,IT_Team
 1. **Copy Template**: Creates a copy of the master template for each data row
 2. **Rename Files**: Renames all internal files and folders to match `Report_Name`
 3. **Update References**: Updates all internal references in project files
-4. **Update Parameters**: Updates parameter values in the semantic model
+4. **Update Parameters**: Updates parameter values in the semantic model (BIM or TMDL)
 5. **Clean Cache**: Removes cache files for proper data loading
 
 ## Generated Output

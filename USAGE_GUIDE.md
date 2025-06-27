@@ -13,9 +13,9 @@ This guide provides step-by-step instructions for using the Power BI Template Au
 Your master template should be a PBIP folder with:
 - A `.pbip` file (e.g., `Example_PBIP.pbip`)
 - A `.Report` folder with report files
-- A `.SemanticModel` folder with `model.bim` containing parameters
+- A `.SemanticModel` folder with either `model.bim` (BIM format) or `definition/` folder (TMDL format)
 
-### Example Template Structure
+### Example Template Structure (BIM Format)
 ```
 Example_PBIP/
 ├── Example_PBIP.pbip
@@ -29,8 +29,27 @@ Example_PBIP/
     └── diagramLayout.json
 ```
 
-### Defining Parameters in model.bim
+### Example Template Structure (TMDL Format)
+```
+Example_PBIP/
+├── Example_PBIP.pbip
+├── Example_PBIP.Report/
+│   ├── definition.pbir
+│   ├── report.json
+│   └── StaticResources/
+└── Example_PBIP.SemanticModel/
+    ├── definition.pbism
+    ├── definition/
+    │   ├── model.tmdl
+    │   └── tables/
+    │       ├── Parameter1.tmdl    # Parameter files
+    │       └── Parameter2.tmdl
+    └── diagramLayout.json
+```
 
+### Defining Parameters
+
+**For BIM Format:**
 Parameters should be defined in the `expressions` section of `model.bim`:
 
 ```json
@@ -50,37 +69,57 @@ Parameters should be defined in the `expressions` section of `model.bim`:
 }
 ```
 
+**For TMDL Format:**
+Parameters are defined as individual table files in `definition/tables/` with `IsParameterQuery=true`:
+
+```tmdl
+table Name
+    lineageTag: a251da0c-f23e-4a35-892f-cdf1db97dc56
+
+    column Name
+        dataType: string
+        lineageTag: 371fd31e-afc5-439b-b2c1-22d461084e30
+        summarizeBy: none
+        sourceColumn: Name
+
+        annotation SummarizationSetBy = Automatic
+
+    partition Name = m
+    mode: import
+    source = "Name A" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+    annotation PBI_NavigationStepName = Navigation
+    annotation PBI_ResultType = Text
+```
+
 ## Step 2: Create Configuration File
 
 Create a YAML configuration file (`pbip_config.yaml`):
 
 ```yaml
 # Configuration for PBIP parameter automation
-# This file defines how CSV columns map to parameters in the model.bim file
+# This file defines how CSV columns map to parameters in the semantic model
 
 parameters:
   # String parameters
-  - name: "Name"           # Must match parameter name in model.bim
+  - name: "Name"           # Must match parameter name in semantic model
     type: "string"         # Data type for validation and conversion
   
   - name: "Owner"
     type: "string"
   
-  # Numeric parameters (if you add them to your model.bim)
+  # Numeric parameters (if you add them to your semantic model)
   # - name: "Budget"
   #   type: "float"
   
   # - name: "Year"
   #   type: "integer"
   
-  # Boolean parameters (if you add them to your model.bim)
+  # Boolean parameters (if you add them to your semantic model)
   # - name: "IsActive"
   #   type: "boolean"
 
 output:
-  # Naming pattern for generated folders
-  # Use any CSV column names in curly braces
-  naming_pattern: "{Name}_{Owner}"
   directory: "./output"
 
 logging:
@@ -91,9 +130,8 @@ logging:
 
 **Configuration Options:**
 - `parameters`: List of parameters to update
-  - `name`: Parameter name (must match model.bim)
+  - `name`: Parameter name (must match semantic model)
   - `type`: Parameter type (string, number, etc.)
-- `output.naming_pattern`: Pattern for output folder names
 - `output.directory`: Output directory path
 - `logging.level`: Logging verbosity (DEBUG, INFO, WARNING, ERROR)
 - `logging.format`: Log format (json, text)
@@ -114,8 +152,8 @@ Central_Report,Central_Report,IT_Team
 
 **CSV Column Mapping:**
 - `Report_Name`: Used for output folder names and internal file renaming
-- `Name`: Maps to the `Name` parameter in model.bim
-- `Owner`: Maps to the `Owner` parameter in model.bim
+- `Name`: Maps to the `Name` parameter in semantic model
+- `Owner`: Maps to the `Owner` parameter in semantic model
 
 ## Step 4: Run the Tool
 
@@ -141,6 +179,19 @@ pbi-automation generate \
 ### Interactive Mode
 ```bash
 pbi-automation launch
+```
+
+### Template Analysis
+```bash
+pbi-automation detect \
+    --template Example_PBIP \
+    --verbose
+```
+
+### Edit Configuration
+```bash
+pbi-automation edit \
+    --config pbip_config.yaml
 ```
 
 ### Command Options
@@ -169,7 +220,7 @@ output/
 
 ### What to Verify
 1. **Folder Structure**: Each project has unique names
-2. **Parameter Values**: Check `model.bim` in each `.SemanticModel` folder
+2. **Parameter Values**: Check semantic model files in each `.SemanticModel` folder
 3. **File References**: All internal references point to correct folders
 
 ## Step 6: Open in Power BI Desktop
@@ -179,6 +230,7 @@ output/
 3. Navigate to your output folder
 4. Select any `.pbip` file (e.g., `North_Report.pbip`)
 5. The project should open without errors
+6. Refresh the data to load the updated parameters
 
 ## Troubleshooting
 
@@ -188,9 +240,9 @@ output/
 - **Cause**: Internal references still point to old folder names
 - **Solution**: Ensure the tool completed successfully and all references were updated
 
-**Error: "Multiple SaveChanges without transaction"**
-- **Cause**: Table definition was modified incorrectly
-- **Solution**: The tool should preserve table definitions as parameter references
+**Error: "Property 'semanticModel' has not been defined"**
+- **Cause**: TMDL projects should not have semanticModel artifact in .pbip file
+- **Solution**: The tool automatically handles this for TMDL format
 
 **Error: "Cannot read definition.pbism"**
 - **Cause**: File path references are incorrect
@@ -198,84 +250,66 @@ output/
 
 **Warning: "Failed to update references in cache.abf"**
 - **Cause**: Binary file cannot be read as text
-- **Solution**: This is expected - cache.abf files are deleted anyway
+- **Solution**: This is normal - binary files are skipped during reference updates
 
-### Debugging Steps
+**Error: "No parameters found in TMDL model"**
+- **Cause**: TMDL parameter files not found or incorrectly formatted
+- **Solution**: Ensure parameter tables have `IsParameterQuery=true` in their source definition
 
-1. **Check Logs**: Use `--verbose` flag for detailed logging
-2. **Verify CSV Format**: Ensure column names match configuration
-3. **Check Template**: Verify master template has correct structure
-4. **Inspect Output**: Manually check generated files for correct references
+### Format Detection Issues
 
-### Manual Verification
+**Error: "Unsupported model format: unknown"**
+- **Cause**: Tool cannot detect BIM or TMDL format
+- **Solution**: 
+  - For BIM: Ensure `model.bim` exists in `.SemanticModel` folder
+  - For TMDL: Ensure `definition/` folder exists with `.tmdl` files
 
-Check these files in each generated project:
+### CSV Issues
 
-1. **`.pbip` file**: Should reference renamed folders
-2. **`definition.pbir`**: Should reference renamed semantic model
-3. **`model.bim`**: Should have updated parameter values
-4. **Folder names**: Should match `Report_Name` from CSV
+**Error: "Failed to load or parse CSV"**
+- **Cause**: CSV file has encoding issues (BOM characters)
+- **Solution**: The tool automatically handles BOM characters, but ensure CSV is UTF-8 encoded
+
+**Error: "Row X has different columns than the first row"**
+- **Cause**: CSV has inconsistent column structure
+- **Solution**: Ensure all rows have the same columns
 
 ## Advanced Usage
 
-### Custom Parameter Types
+### Template Analysis
 
-Add different parameter types to your configuration:
-
-```yaml
-parameters:
-  - name: Name
-    type: string
-  - name: Owner
-    type: string
-  - name: Year
-    type: integer
-  - name: Budget
-    type: float
-  - name: IsActive
-    type: boolean
-```
-
-### Large-Scale Processing
-
-For processing many projects:
-
-1. **Batch Processing**: Split large CSV files into smaller batches
-2. **Parallel Processing**: Run multiple instances with different output directories
-3. **Error Handling**: Check logs for any failed generations
-
-### Integration with CI/CD
+Use the `detect` command to analyze your template before generation:
 
 ```bash
-# Example CI/CD script
-pbi-automation generate \
-    --template $TEMPLATE_PATH \
-    --config $CONFIG_PATH \
-    --data $DATA_PATH \
-    --output-dir $OUTPUT_PATH \
-    --verbose
-
-# Check exit code
-if [ $? -eq 0 ]; then
-    echo "PBIP generation successful"
-else
-    echo "PBIP generation failed"
-    exit 1
-fi
+pbi-automation detect --template YourTemplate --verbose
 ```
+
+This will show:
+- Model format (BIM or TMDL)
+- All parameters found with current values
+- Template structure validation
+
+### Interactive Configuration Editing
+
+Use the `edit` command to modify your YAML configuration:
+
+```bash
+pbi-automation edit --config pbip_config.yaml
+```
+
+This provides an interactive menu to:
+- Add/remove parameters
+- Modify output settings
+- Configure logging options
+
+### Batch Processing
+
+For large datasets, the tool processes each row independently. If one row fails, others continue processing. Check the output for any failed rows and their error messages.
 
 ## Best Practices
 
-1. **Backup Templates**: Always keep a backup of your master template
-2. **Test Small**: Test with a few rows before processing large datasets
-3. **Validate Output**: Always verify generated projects open correctly
-4. **Version Control**: Use version control for configuration and data files
-5. **Documentation**: Document your parameter structure and naming conventions
-
-## Support
-
-If you encounter issues:
-1. Check the troubleshooting section above
-2. Review the verbose logs for error details
-3. Verify your template structure and configuration
-4. Test with the provided example files 
+1. **Template Preparation**: Ensure your master template works correctly in Power BI Desktop before using it with the tool
+2. **Parameter Naming**: Use consistent parameter names between your template and CSV data
+3. **Testing**: Test with a small dataset first before processing large amounts of data
+4. **Backup**: Keep a backup of your master template before making changes
+5. **Validation**: Use the `detect` command to validate your template structure and parameters 

@@ -1,29 +1,26 @@
 # Configuration for PBIP parameter automation
-# This file defines how CSV columns map to parameters in the model.bim file
+# This file defines how CSV columns map to parameters in the semantic model
 
 parameters:
   # String parameters
-  - name: "Name"           # Must match parameter name in model.bim
+  - name: "Name"           # Must match parameter name in semantic model
     type: "string"         # Data type for validation and conversion
   
   - name: "Owner"
     type: "string"
   
-  # Numeric parameters (if you add them to your model.bim)
+  # Numeric parameters (if you add them to your semantic model)
   # - name: "Budget"
   #   type: "float"
   
   # - name: "Year"
   #   type: "integer"
   
-  # Boolean parameters (if you add them to your model.bim)
+  # Boolean parameters (if you add them to your semantic model)
   # - name: "IsActive"
   #   type: "boolean"
 
 output:
-  # Naming pattern for generated folders
-  # Use any CSV column names in curly braces
-  naming_pattern: "{Name}_{Owner}"
   directory: "./output"
 
 logging:

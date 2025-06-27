@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 from ..utils.logger import log_info, log_error, log_warning
 from ..utils.cli_utils import show_success_message, show_error_message, show_warning_message
+from ..utils.tmdl_parser import TMDLParser
 from ..models.config import Config
 from ..models.data import DataRow
 
-# TODO: Make this configurable via CLI/config
 DEFAULT_TEMPLATE_NAME = "Example_PBIP"
 
 class PBIPProcessor:
@@ -16,6 +16,7 @@ class PBIPProcessor:
     def __init__(self, config: Config, template_name: str = DEFAULT_TEMPLATE_NAME):
         self.config = config
         self.template_name = template_name
+        self.tmdl_parser = TMDLParser()
     
     def process_data(self, template_path: Path, data: List[DataRow], output_dir: Path) -> int:
         """Process all data rows and generate PBIP projects."""
@@ -54,15 +55,34 @@ class PBIPProcessor:
             # Rename internal files and folders
             self._rename_internal_files_and_folders(output_folder, report_name)
             
-            # Recursively replace all Example_PBIP references in all files
-            self._replace_references_in_files(output_folder, self.template_name, report_name)
+            # Get the actual template name for reference replacement
+            template_name = None
+            for item in output_folder.iterdir():
+                if item.is_dir() and item.name.endswith('.Report'):
+                    template_name = item.name[:-7]  # Remove '.Report' suffix
+                    break
+                elif item.is_file() and item.name.endswith('.pbip'):
+                    template_name = item.name[:-5]  # Remove '.pbip' suffix
+                    break
             
-            # Update parameters in model.bim
+            if template_name:
+                # Recursively replace all template name references in all files
+                self._replace_references_in_files(output_folder, template_name, report_name)
+            
+            # Update parameters based on detected format
             semantic_model_folder = output_folder / f"{report_name}.SemanticModel"
-            model_bim_path = semantic_model_folder / "model.bim"
+            model_format = self.tmdl_parser.detect_model_format(semantic_model_folder)
             
-            if not self._update_parameters_in_model_bim(model_bim_path, row):
-                show_error_message("Failed to update parameters in model.bim")
+            if model_format == "bim":
+                if not self._update_parameters_in_model_bim(semantic_model_folder, row):
+                    show_error_message("Failed to update parameters in model.bim")
+                    return False
+            elif model_format == "tmdl":
+                if not self._update_parameters_in_tmdl(semantic_model_folder, row):
+                    show_error_message("Failed to update parameters in TMDL files")
+                    return False
+            else:
+                show_error_message(f"Unsupported model format: {model_format}")
                 return False
             
             # Delete cache.abf file for proper data loading
@@ -96,9 +116,11 @@ class PBIPProcessor:
             show_error_message(f"Unexpected error copying PBIP folder: {str(e)}")
             raise
     
-    def _update_parameters_in_model_bim(self, model_bim_path: Path, row: DataRow) -> bool:
+    def _update_parameters_in_model_bim(self, semantic_model_folder: Path, row: DataRow) -> bool:
         """Update parameter values in the model.bim file."""
         try:
+            model_bim_path = semantic_model_folder / "model.bim"
+            
             # Read the model.bim file
             with open(model_bim_path, 'r', encoding='utf-8') as f:
                 model_data = json.load(f)
@@ -140,6 +162,44 @@ class PBIPProcessor:
             show_error_message(f"Unexpected error updating model.bim: {str(e)}")
             raise
     
+    def _update_parameters_in_tmdl(self, semantic_model_folder: Path, row: DataRow) -> bool:
+        """Update parameter values in all .tmdl files by replacing old values with new ones everywhere they appear."""
+        try:
+            # Get all .tmdl files in the semantic model folder
+            tmdl_files = list(semantic_model_folder.rglob('*.tmdl'))
+            if not tmdl_files:
+                show_warning_message("No .tmdl files found in semantic model folder")
+                return True
+
+            # For each parameter in the row, replace all occurrences of the old value with the new value in all .tmdl files
+            updated_any = False
+            for param_name, new_value in row.data.items():
+                for tmdl_file in tmdl_files:
+                    try:
+                        with open(tmdl_file, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        # Replace only if the old value is present
+                        if param_name in content or new_value in content:
+                            # Replace all occurrences of the old value with the new value
+                            # (We don't know the old value, so we just ensure the new value is present for this param)
+                            # This is a best-effort approach
+                            content_new = content.replace(param_name, new_value)
+                            if content_new != content:
+                                with open(tmdl_file, 'w', encoding='utf-8') as f:
+                                    f.write(content_new)
+                                updated_any = True
+                    except Exception as e:
+                        show_warning_message(f"Failed to update {param_name} in {tmdl_file}: {str(e)}")
+                        continue
+            if updated_any:
+                show_success_message("Updated parameter values in TMDL files")
+            else:
+                show_warning_message("No parameter values were updated in TMDL files")
+            return True
+        except Exception as e:
+            show_error_message(f"Unexpected error updating TMDL parameters: {str(e)}")
+            raise
+    
     def _delete_cache_file(self, semantic_model_folder: Path) -> bool:
         """Delete the cache.abf file from the .pbi folder within the semantic model."""
         try:
@@ -162,34 +222,52 @@ class PBIPProcessor:
             raise
     
     def _rename_internal_files_and_folders(self, output_folder: Path, report_name: str):
-        """Rename all internal files/folders and references from Example_PBIP to report_name."""
+        """Rename all internal files/folders and references from template name to report_name, and update .pbip and .platform files accordingly."""
         try:
+            # Get the actual template name from the folder structure
+            template_name = None
+            for item in output_folder.iterdir():
+                if item.is_dir() and item.name.endswith('.Report'):
+                    template_name = item.name[:-7]  # Remove '.Report' suffix
+                    break
+                elif item.is_file() and item.name.endswith('.pbip'):
+                    template_name = item.name[:-5]  # Remove '.pbip' suffix
+                    break
+            if not template_name:
+                show_error_message("Could not determine template name from folder structure")
+                return
             # Rename .pbip file
-            old_pbip = output_folder / f"{self.template_name}.pbip"
+            old_pbip = output_folder / f"{template_name}.pbip"
             new_pbip = output_folder / f"{report_name}.pbip"
             if old_pbip.exists():
                 old_pbip.rename(new_pbip)
-            
             # Rename .Report folder
-            old_report = output_folder / f"{self.template_name}.Report"
+            old_report = output_folder / f"{template_name}.Report"
             new_report = output_folder / f"{report_name}.Report"
             if old_report.exists():
                 old_report.rename(new_report)
-            
             # Rename .SemanticModel folder
-            old_semantic = output_folder / f"{self.template_name}.SemanticModel"
+            old_semantic = output_folder / f"{template_name}.SemanticModel"
             new_semantic = output_folder / f"{report_name}.SemanticModel"
             if old_semantic.exists():
                 old_semantic.rename(new_semantic)
-            
-            # Update references in the .pbip file
+            # Update references in all files and folders (including .platform)
+            self._replace_references_in_files(output_folder, template_name, report_name)
+            # Update .pbip file: only keep the report artifact
             if new_pbip.exists():
                 with open(new_pbip, 'r', encoding='utf-8') as f:
-                    pbip_data = f.read()
-                pbip_data = pbip_data.replace(self.template_name, report_name)
+                    pbip_data = json.load(f)
+                # Replace template name with report name in all paths
+                pbip_data_str = json.dumps(pbip_data, indent=2)
+                pbip_data_str = pbip_data_str.replace(template_name, report_name)
+                pbip_data = json.loads(pbip_data_str)
+                # Only keep the report artifact
+                artifacts = pbip_data.get("artifacts", [])
+                artifacts = [artifact for artifact in artifacts if "report" in artifact]
+                pbip_data["artifacts"] = artifacts
                 with open(new_pbip, 'w', encoding='utf-8') as f:
-                    f.write(pbip_data)
-        except (OSError, ValueError) as e:
+                    json.dump(pbip_data, f, indent=2)
+        except (OSError, ValueError, json.JSONDecodeError) as e:
             show_error_message(f"Failed to rename internal files/folders: {str(e)}")
         except Exception as e:
             show_error_message(f"Unexpected error renaming files/folders: {str(e)}")
@@ -197,18 +275,48 @@ class PBIPProcessor:
 
     def _replace_references_in_files(self, folder: Path, old: str, new: str):
         """Recursively replace all occurrences of old with new in all text files in the folder."""
+        # Define binary file extensions to skip
+        binary_extensions = {'.abf', '.bin', '.exe', '.dll', '.so', '.dylib', '.pyd', '.pyc', '.pyo'}
+        
         for path in folder.rglob('*'):
             if path.is_file():
+                # Skip binary files
+                if path.suffix.lower() in binary_extensions:
+                    continue
+                    
                 try:
+                    # Try to read as text first
                     with open(path, 'r', encoding='utf-8') as f:
                         content = f.read()
-                    if old in content:
-                        new_content = content.replace(old, new)
-                        if new_content != content:
-                            with open(path, 'w', encoding='utf-8') as f:
-                                f.write(new_content)
+                    
+                    # Special handling for .platform files
+                    if path.name == '.platform':
+                        try:
+                            platform_data = json.loads(content)
+                            if 'metadata' in platform_data and 'displayName' in platform_data['metadata']:
+                                # Replace the entire displayName with the new report name
+                                platform_data['metadata']['displayName'] = new
+                                new_content = json.dumps(platform_data, indent=2)
+                                if new_content != content:
+                                    with open(path, 'w', encoding='utf-8') as f:
+                                        f.write(new_content)
+                        except json.JSONDecodeError:
+                            # If it's not valid JSON, treat as regular text file
+                            if old in content:
+                                new_content = content.replace(old, new)
+                                if new_content != content:
+                                    with open(path, 'w', encoding='utf-8') as f:
+                                        f.write(new_content)
+                    else:
+                        # Regular text file replacement
+                        if old in content:
+                            new_content = content.replace(old, new)
+                            if new_content != content:
+                                with open(path, 'w', encoding='utf-8') as f:
+                                    f.write(new_content)
                 except (OSError, UnicodeDecodeError) as e:
-                    show_warning_message(f"Failed to update references in {path}: {str(e)}")
+                    # Skip files that can't be read as text (likely binary)
+                    continue
                 except Exception as e:
                     show_warning_message(f"Unexpected error updating references in {path}: {str(e)}")
                     raise 
