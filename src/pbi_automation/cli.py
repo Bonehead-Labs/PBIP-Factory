@@ -44,19 +44,82 @@ def prompt_for_template() -> str:
 
 
 def prompt_for_config() -> str:
-    """Prompt user for config path and validate it exists."""
-    while True:
-        questions = [
-            inquirer.Text('config', 
-                         message='Enter the path to your configuration YAML file',
-                         default='examples/configs/pbip_config.yaml')
-        ]
-        answers = inquirer.prompt(questions)
-        path = answers['config']
-        if Path(path).exists() and Path(path).is_file():
-            return path
-        else:
-            show_error_message(f"Configuration file not found: {path}")
+    """Prompt user for config path with interactive selection from available configs."""
+    discovery = DiscoveryManager()
+    configs = discovery.get_available_configs()
+    
+    if not configs:
+        # Fallback to manual entry if no configs found
+        while True:
+            questions = [
+                inquirer.Text('config', 
+                             message='Enter the path to your configuration YAML file',
+                             default='configs/example_config.yaml')
+            ]
+            answers = inquirer.prompt(questions)
+            path = answers['config']
+            if Path(path).exists() and Path(path).is_file():
+                return path
+            else:
+                show_error_message(f"Configuration file not found: {path}")
+    
+    # Show interactive selection
+    config_choices = [f"{c['name']} ({c['type']})" for c in configs]
+    config_choices.append("Other (type manually)")
+    questions = [
+        inquirer.List('config',
+                     message='Select a configuration file:',
+                     choices=config_choices)
+    ]
+    answers = inquirer.prompt(questions)
+    
+    if answers['config'] == "Other (type manually)":
+        while True:
+            manual = inquirer.prompt([
+                inquirer.Text('manual_config', message='Enter the path to your configuration YAML file')
+            ])
+            path = manual['manual_config']
+            if Path(path).exists() and Path(path).is_file():
+                return path
+            else:
+                show_error_message(f"Configuration file not found: {path}")
+    else:
+        selected_config = configs[config_choices.index(answers['config'])]
+        return selected_config['path']
+
+
+def prompt_for_config_interactive() -> str:
+    """Interactive config selection for the edit command."""
+    discovery = DiscoveryManager()
+    configs = discovery.get_available_configs()
+    
+    if not configs:
+        show_error_message("No configuration files found. Please add configs to the configs/ directory.")
+        return None
+    
+    # Show interactive selection
+    config_choices = [f"{c['name']} ({c['type']})" for c in configs]
+    config_choices.append("Other (type manually)")
+    questions = [
+        inquirer.List('config',
+                     message='Select a configuration file to edit:',
+                     choices=config_choices)
+    ]
+    answers = inquirer.prompt(questions)
+    
+    if answers['config'] == "Other (type manually)":
+        while True:
+            manual = inquirer.prompt([
+                inquirer.Text('manual_config', message='Enter the path to your configuration YAML file')
+            ])
+            path = manual['manual_config']
+            if Path(path).exists() and Path(path).is_file():
+                return path
+            else:
+                show_error_message(f"Configuration file not found: {path}")
+    else:
+        selected_config = configs[config_choices.index(answers['config'])]
+        return selected_config['path']
 
 
 def prompt_for_data() -> str:
@@ -521,7 +584,7 @@ def launch():
                 console.print()
                 
                 # Prompt for config file
-                config = prompt_for_config()
+                config = prompt_for_config_interactive()
                 
                 if config:
                     console.print()
@@ -574,13 +637,49 @@ def launch():
 
 @app.command()
 def edit(
-    config: str = typer.Option("examples/configs/pbip_config.yaml", "--config", "-c", help="Path to configuration YAML file to edit"),
-    create: bool = typer.Option(False, "--create", help="Create new configuration file if it doesn't exist")
+    config: Optional[str] = typer.Option(None, "--config", "-c", help="Path to configuration YAML file to edit"),
+    create: bool = typer.Option(False, "--create", help="Create new configuration file if it doesn't exist"),
+    interactive: bool = typer.Option(False, "--interactive", "-i", help="Use interactive selection")
 ):
     """Edit YAML configuration file interactively."""
     
     # Show splash screen
     show_splash_screen()
+    
+    # If no config provided or interactive mode requested, use interactive selection
+    if not config or interactive:
+        discovery = DiscoveryManager()
+        configs = discovery.get_available_configs()
+        
+        if not configs:
+            show_error_message("No configuration files found. Please add configs to the configs/ directory.")
+            show_info_message("Use --create flag to create a new configuration file")
+            raise typer.Exit(1)
+        
+        # Show interactive selection
+        config_choices = [f"{c['name']} ({c['type']})" for c in configs]
+        config_choices.append("Other (type manually)")
+        questions = [
+            inquirer.List('config',
+                         message='Select a configuration file to edit:',
+                         choices=config_choices)
+        ]
+        answers = inquirer.prompt(questions)
+        
+        if answers['config'] == "Other (type manually)":
+            while True:
+                manual = inquirer.prompt([
+                    inquirer.Text('manual_config', message='Enter the path to your configuration YAML file')
+                ])
+                path = manual['manual_config']
+                if Path(path).exists() and Path(path).is_file():
+                    config = path
+                    break
+                else:
+                    show_error_message(f"Configuration file not found: {path}")
+        else:
+            selected_config = configs[config_choices.index(answers['config'])]
+            config = selected_config['path']
     
     config_path = Path(config)
     
