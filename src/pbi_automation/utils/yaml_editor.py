@@ -201,16 +201,14 @@ class InteractiveEditor:
     
     def _create_new_config(self) -> bool:
         """Create a new configuration file."""
+        import inquirer
+        
         questions = [
-            {
-                'type': 'confirm',
-                'name': 'create_new',
-                'message': f'Configuration file not found. Create new file at {self.file_manager.file_path}?',
-                'default': True
-            }
+            inquirer.Confirm('create_new',
+                           message=f'Configuration file not found. Create new file at {self.file_manager.file_path}?',
+                           default=True)
         ]
         
-        import inquirer
         answers = inquirer.prompt(questions)
         
         if answers and answers['create_new']:
@@ -252,21 +250,496 @@ class InteractiveEditor:
     
     def _edit_parameters(self) -> None:
         """Edit parameters section."""
-        show_info_message("Parameter Editor")
-        # TODO: Implement parameter editing
-        show_warning_message("Parameter editing not yet implemented")
+        while True:
+            try:
+                choice = self._show_parameter_menu()
+                
+                if choice == '1':
+                    self._list_parameters()
+                elif choice == '2':
+                    self._add_parameter()
+                elif choice == '3':
+                    self._edit_parameter()
+                elif choice == '4':
+                    self._delete_parameter()
+                elif choice == '5':
+                    break  # Return to main menu
+                else:
+                    show_error_message("Invalid choice. Please try again.")
+                    
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                show_error_message(f"An error occurred: {e}")
+                log_error(f"Parameter editor error: {e}")
+    
+    def _show_parameter_menu(self) -> str:
+        """Display the parameter editing menu."""
+        console.print()
+        console.print("┌─ Parameter Editor ──────────────────────────────┐")
+        console.print("│                                                  │")
+        console.print("│  What would you like to do?                     │")
+        console.print("│                                                  │")
+        console.print("│  [1] List Parameters                            │")
+        console.print("│  [2] Add Parameter                              │")
+        console.print("│  [3] Edit Parameter                             │")
+        console.print("│  [4] Delete Parameter                           │")
+        console.print("│  [5] Back to Main Menu                          │")
+        console.print("│                                                  │")
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
+        
+        import inquirer
+        questions = [
+            inquirer.List('choice',
+                         message='Select an option',
+                         choices=['1', '2', '3', '4', '5'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        return answers['choice'] if answers else '5'
+    
+    def _list_parameters(self) -> None:
+        """List all parameters in a formatted table."""
+        data = self.file_manager.get_data()
+        parameters = data.get('parameters', [])
+        
+        if not parameters:
+            show_info_message("No parameters defined yet.")
+            return
+        
+        console.print()
+        console.print("┌─ Current Parameters ────────────────────────────┐")
+        
+        for i, param in enumerate(parameters, 1):
+            name = param.get('name', 'Unknown')
+            param_type = param.get('type', 'Unknown')
+            console.print(f"│  {i:2d}. {name:<20} ({param_type})")
+        
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
+    
+    def _add_parameter(self) -> None:
+        """Add a new parameter."""
+        import inquirer
+        
+        questions = [
+            inquirer.Text('name',
+                         message='Enter parameter name',
+                         validate=lambda _, x: len(x.strip()) > 0 or 'Name cannot be empty'),
+            inquirer.List('type',
+                         message='Select parameter type',
+                         choices=['string', 'integer', 'float', 'boolean'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        name = answers['name'].strip()
+        param_type = answers['type']
+        
+        # Check if parameter already exists
+        data = self.file_manager.get_data()
+        parameters = data.get('parameters', [])
+        
+        for param in parameters:
+            if param.get('name') == name:
+                show_error_message(f"Parameter '{name}' already exists")
+                return
+        
+        # Add new parameter
+        new_param = CommentedMap([('name', name), ('type', param_type)])
+        parameters.append(new_param)
+        data['parameters'] = parameters
+        
+        self.unsaved_changes = True
+        show_success_message(f"Added parameter '{name}' ({param_type})")
+    
+    def _edit_parameter(self) -> None:
+        """Edit an existing parameter."""
+        data = self.file_manager.get_data()
+        parameters = data.get('parameters', [])
+        
+        if not parameters:
+            show_info_message("No parameters to edit.")
+            return
+        
+        # Show parameter list for selection
+        console.print()
+        console.print("┌─ Select Parameter to Edit ──────────────────────┐")
+        
+        for i, param in enumerate(parameters, 1):
+            name = param.get('name', 'Unknown')
+            param_type = param.get('type', 'Unknown')
+            console.print(f"│  {i:2d}. {name:<20} ({param_type})")
+        
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
+        
+        import inquirer
+        questions = [
+            inquirer.List('index',
+                         message='Select parameter to edit',
+                         choices=[str(i) for i in range(1, len(parameters) + 1)])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        try:
+            index = int(answers['index']) - 1
+            param = parameters[index]
+        except (ValueError, IndexError):
+            show_error_message("Invalid parameter selection")
+            return
+        
+        # Edit the parameter
+        self._edit_single_parameter(param, index)
+    
+    def _edit_single_parameter(self, param: CommentedMap, index: int) -> None:
+        """Edit a single parameter's properties."""
+        import inquirer
+        
+        current_name = param.get('name', '')
+        current_type = param.get('type', '')
+        
+        questions = [
+            inquirer.Text('name',
+                         message='Enter parameter name',
+                         default=current_name,
+                         validate=lambda _, x: len(x.strip()) > 0 or 'Name cannot be empty'),
+            inquirer.List('type',
+                         message='Select parameter type',
+                         default=current_type,
+                         choices=['string', 'integer', 'float', 'boolean'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        new_name = answers['name'].strip()
+        new_type = answers['type']
+        
+        # Check if new name conflicts with other parameters
+        data = self.file_manager.get_data()
+        parameters = data.get('parameters', [])
+        
+        for i, other_param in enumerate(parameters):
+            if i != index and other_param.get('name') == new_name:
+                show_error_message(f"Parameter '{new_name}' already exists")
+                return
+        
+        # Update the parameter
+        param['name'] = new_name
+        param['type'] = new_type
+        
+        self.unsaved_changes = True
+        show_success_message(f"Updated parameter '{current_name}' to '{new_name}' ({new_type})")
+    
+    def _delete_parameter(self) -> None:
+        """Delete a parameter."""
+        data = self.file_manager.get_data()
+        parameters = data.get('parameters', [])
+        
+        if not parameters:
+            show_info_message("No parameters to delete.")
+            return
+        
+        # Show parameter list for selection
+        console.print()
+        console.print("┌─ Select Parameter to Delete ────────────────────┐")
+        
+        for i, param in enumerate(parameters, 1):
+            name = param.get('name', 'Unknown')
+            param_type = param.get('type', 'Unknown')
+            console.print(f"│  {i:2d}. {name:<20} ({param_type})")
+        
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
+        
+        import inquirer
+        questions = [
+            inquirer.List('index',
+                         message='Select parameter to delete',
+                         choices=[str(i) for i in range(1, len(parameters) + 1)]),
+            inquirer.Confirm('confirm',
+                           message='Are you sure you want to delete this parameter?',
+                           default=False)
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers or not answers['confirm']:
+            return
+        
+        try:
+            index = int(answers['index']) - 1
+            deleted_param = parameters.pop(index)
+            deleted_name = deleted_param.get('name', 'Unknown')
+            
+            self.unsaved_changes = True
+            show_success_message(f"Deleted parameter '{deleted_name}'")
+            
+        except (ValueError, IndexError):
+            show_error_message("Invalid parameter selection")
     
     def _edit_output_settings(self) -> None:
         """Edit output settings."""
-        show_info_message("Output Settings Editor")
-        # TODO: Implement output settings editing
-        show_warning_message("Output settings editing not yet implemented")
+        while True:
+            try:
+                choice = self._show_output_menu()
+                
+                if choice == '1':
+                    self._edit_output_directory()
+                elif choice == '2':
+                    self._view_output_settings()
+                elif choice == '3':
+                    break  # Return to main menu
+                else:
+                    show_error_message("Invalid choice. Please try again.")
+                    
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                show_error_message(f"An error occurred: {e}")
+                log_error(f"Output settings editor error: {e}")
+    
+    def _show_output_menu(self) -> str:
+        """Display the output settings menu."""
+        console.print()
+        console.print("┌─ Output Settings Editor ───────────────────────┐")
+        console.print("│                                                  │")
+        console.print("│  What would you like to do?                     │")
+        console.print("│                                                  │")
+        console.print("│  [1] Edit Output Directory                      │")
+        console.print("│  [2] View Current Settings                      │")
+        console.print("│  [3] Back to Main Menu                          │")
+        console.print("│                                                  │")
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
+        
+        import inquirer
+        questions = [
+            inquirer.List('choice',
+                         message='Select an option',
+                         choices=['1', '2', '3'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        return answers['choice'] if answers else '3'
+    
+    def _edit_output_directory(self) -> None:
+        """Edit the output directory setting."""
+        data = self.file_manager.get_data()
+        
+        # Ensure output section exists
+        if 'output' not in data:
+            data['output'] = CommentedMap()
+        
+        current_directory = data['output'].get('directory', './output')
+        
+        import inquirer
+        questions = [
+            inquirer.Text('directory',
+                         message='Enter output directory path',
+                         default=current_directory)
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        new_directory = answers['directory'].strip()
+        if not new_directory:
+            show_error_message("Directory path cannot be empty")
+            return
+        
+        # Update the setting
+        data['output']['directory'] = new_directory
+        
+        self.unsaved_changes = True
+        show_success_message(f"Updated output directory to: {new_directory}")
+    
+    def _view_output_settings(self) -> None:
+        """View current output settings."""
+        data = self.file_manager.get_data()
+        output = data.get('output', {})
+        
+        console.print()
+        console.print("┌─ Current Output Settings ──────────────────────┐")
+        
+        directory = output.get('directory', './output')
+        console.print(f"│  Directory: {directory}")
+        
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
     
     def _edit_logging_config(self) -> None:
         """Edit logging configuration."""
-        show_info_message("Logging Configuration Editor")
-        # TODO: Implement logging configuration editing
-        show_warning_message("Logging configuration editing not yet implemented")
+        while True:
+            try:
+                choice = self._show_logging_menu()
+                
+                if choice == '1':
+                    self._edit_log_level()
+                elif choice == '2':
+                    self._edit_log_format()
+                elif choice == '3':
+                    self._edit_log_file()
+                elif choice == '4':
+                    self._view_logging_settings()
+                elif choice == '5':
+                    break  # Return to main menu
+                else:
+                    show_error_message("Invalid choice. Please try again.")
+                    
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                show_error_message(f"An error occurred: {e}")
+                log_error(f"Logging editor error: {e}")
+    
+    def _show_logging_menu(self) -> str:
+        """Display the logging configuration menu."""
+        console.print()
+        console.print("┌─ Logging Configuration Editor ─────────────────┐")
+        console.print("│                                                  │")
+        console.print("│  What would you like to do?                     │")
+        console.print("│                                                  │")
+        console.print("│  [1] Edit Log Level                             │")
+        console.print("│  [2] Edit Log Format                            │")
+        console.print("│  [3] Edit Log File                              │")
+        console.print("│  [4] View Current Settings                      │")
+        console.print("│  [5] Back to Main Menu                          │")
+        console.print("│                                                  │")
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
+        
+        import inquirer
+        questions = [
+            inquirer.List('choice',
+                         message='Select an option',
+                         choices=['1', '2', '3', '4', '5'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        return answers['choice'] if answers else '5'
+    
+    def _edit_log_level(self) -> None:
+        """Edit the log level setting."""
+        data = self.file_manager.get_data()
+        
+        # Ensure logging section exists
+        if 'logging' not in data:
+            data['logging'] = CommentedMap()
+        
+        current_level = data['logging'].get('level', 'INFO')
+        
+        import inquirer
+        questions = [
+            inquirer.List('level',
+                         message='Select log level',
+                         default=current_level,
+                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        new_level = answers['level']
+        
+        # Update the setting
+        data['logging']['level'] = new_level
+        
+        self.unsaved_changes = True
+        show_success_message(f"Updated log level to: {new_level}")
+    
+    def _edit_log_format(self) -> None:
+        """Edit the log format setting."""
+        data = self.file_manager.get_data()
+        
+        # Ensure logging section exists
+        if 'logging' not in data:
+            data['logging'] = CommentedMap()
+        
+        current_format = data['logging'].get('format', 'json')
+        
+        import inquirer
+        questions = [
+            inquirer.List('format',
+                         message='Select log format',
+                         default=current_format,
+                         choices=['json', 'text'])
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        new_format = answers['format']
+        
+        # Update the setting
+        data['logging']['format'] = new_format
+        
+        self.unsaved_changes = True
+        show_success_message(f"Updated log format to: {new_format}")
+    
+    def _edit_log_file(self) -> None:
+        """Edit the log file setting."""
+        data = self.file_manager.get_data()
+        
+        # Ensure logging section exists
+        if 'logging' not in data:
+            data['logging'] = CommentedMap()
+        
+        current_file = data['logging'].get('file', 'pbi_automation.log')
+        
+        import inquirer
+        questions = [
+            inquirer.Text('file',
+                         message='Enter log file path (or leave empty to disable file logging)',
+                         default=current_file)
+        ]
+        
+        answers = inquirer.prompt(questions)
+        if not answers:
+            return
+        
+        new_file = answers['file'].strip()
+        
+        # Update the setting
+        if new_file:
+            data['logging']['file'] = new_file
+            show_success_message(f"Updated log file to: {new_file}")
+        else:
+            # Remove file setting to disable file logging
+            if 'file' in data['logging']:
+                del data['logging']['file']
+            show_success_message("Disabled file logging")
+        
+        self.unsaved_changes = True
+    
+    def _view_logging_settings(self) -> None:
+        """View current logging settings."""
+        data = self.file_manager.get_data()
+        logging = data.get('logging', {})
+        
+        console.print()
+        console.print("┌─ Current Logging Settings ─────────────────────┐")
+        
+        level = logging.get('level', 'INFO')
+        format_type = logging.get('format', 'json')
+        log_file = logging.get('file', 'pbi_automation.log')
+        
+        console.print(f"│  Level:  {level}")
+        console.print(f"│  Format: {format_type}")
+        console.print(f"│  File:   {log_file}")
+        
+        console.print("└──────────────────────────────────────────────────┘")
+        console.print()
     
     def _view_configuration(self) -> None:
         """View current configuration."""
