@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pbi-template-automation"
-version = "1.0.0"
+name = "pbip-factory"
+version = "1.1.0"
 description = "A tool for automating Power BI template (PBIP) generation with parameter updates"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -46,13 +46,13 @@ dev = [
 ]
 
 [project.scripts]
-pbi-automation = "pbi_automation.cli:app"
+pbip-factory = "pbi_automation.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/George-Nizor/_PBI_Template_Automation"
-Repository = "https://github.com/George-Nizor/_PBI_Template_Automation"
-Documentation = "https://github.com/George-Nizor/_PBI_Template_Automation#readme"
-Issues = "https://github.com/George-Nizor/_PBI_Template_Automation/issues"
+Homepage = "https://github.com/Bonehead-Labs/PBIP-Factory"
+Repository = "https://github.com/Bonehead-Labs/PBIP-Factory"
+Documentation = "https://github.com/Bonehead-Labs/PBIP-Factory#readme"
+Issues = "https://github.com/Bonehead-Labs/PBIP-Factory/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pbi_automation"]

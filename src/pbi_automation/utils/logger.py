@@ -5,7 +5,11 @@ from pathlib import Path
 
 
 def setup_logging(verbose: bool = False, log_file: Optional[Path] = None):
-    """Setup structured logging."""
+    """Configure structured logging for PBIP Factory.
+
+    When a log_file is provided, logs are written as JSON lines to the file;
+    otherwise logs are emitted to stdout.
+    """
     processors = [
         structlog.stdlib.filter_by_level,
         structlog.stdlib.add_logger_name,
@@ -29,11 +33,7 @@ def setup_logging(verbose: bool = False, log_file: Optional[Path] = None):
     level = logging.DEBUG if verbose else logging.INFO
     
     if log_file:
-        logging.basicConfig(
-            format="%(message)s",
-            stream=open(log_file, 'w'),
-            level=level
-        )
+        logging.basicConfig(format="%(message)s", stream=open(log_file, 'w'), level=level)
     else:
         logging.basicConfig(
             format="%(message)s",

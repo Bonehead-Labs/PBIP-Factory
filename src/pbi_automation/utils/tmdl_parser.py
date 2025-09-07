@@ -15,11 +15,14 @@ class TMDLParser:
     """Parser for TMDL (Tabular Model Definition Language) files."""
     
     def __init__(self):
+        # Match a parameter source expression in TMDL (IsParameterQuery=true)
         self.parameter_pattern = re.compile(
             r'source\s*=\s*"([^"]+)"\s*meta\s*\[IsParameterQuery=true[^\]]*\]',
             re.MULTILINE | re.DOTALL
         )
+        # Match the table name (used as parameter name in parameter tables)
         self.table_name_pattern = re.compile(r'^table\s+(\w+)', re.MULTILINE)
+        # Match a full partition block to safely replace the expression when present
         self.partition_pattern = re.compile(
             r'partition\s+(\w+)\s*=\s*m\s*\n(.*?)(?=\n\w|\n$|\Z)',
             re.MULTILINE | re.DOTALL

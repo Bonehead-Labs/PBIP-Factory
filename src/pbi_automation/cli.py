@@ -23,7 +23,7 @@ from .utils.yaml_editor import edit_yaml_config
 from .utils.tmdl_parser import TMDLParser
 from .utils.discovery import DiscoveryManager
 
-app = typer.Typer(name="pbip-template-pal", help="PBIP Template Automation Tool")
+app = typer.Typer(name="pbip-factory", help="PBIP Factory - Generate PBIP projects at scale")
 console = Console()
 
 
@@ -33,7 +33,7 @@ def prompt_for_template() -> str:
         questions = [
             inquirer.Text('template', 
                          message='Enter the path to your PBIP template folder',
-                         default='Example_PBIP')
+                         default='templates/Example_PBIP')
         ]
         answers = inquirer.prompt(questions)
         path = answers['template']
@@ -128,7 +128,7 @@ def prompt_for_data() -> str:
         questions = [
             inquirer.Text('data', 
                          message='Enter the path to your CSV data file',
-                         default='examples/data/pbip_data.csv')
+                         default='data/pbip_data.csv')
         ]
         answers = inquirer.prompt(questions)
         path = answers['data']
@@ -144,7 +144,7 @@ def prompt_for_output() -> str:
         questions = [
             inquirer.Text('output', 
                          message='Enter the output directory for generated projects',
-                         default='output')
+                         default='outputs')
         ]
         answers = inquirer.prompt(questions)
         path = answers['output']
@@ -700,8 +700,8 @@ def edit(
 def version():
     """Show version information."""
     show_splash_screen()
-    console.print("[bold blue]Version:[/bold blue] 1.0.0")
-    console.print("[bold blue]PBIP-TEMPLATE-PAL[/bold blue]")
+    console.print("[bold blue]Version:[/bold blue] 1.1.0")
+    console.print("[bold blue]PBIP-FACTORY[/bold blue]")
 
 
 @app.command()
@@ -710,106 +710,10 @@ def detect(
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging")
 ):
     """Detect and display the model format and parameters of a PBIP template."""
-    
-    # Show splash screen
     show_splash_screen()
-    
-    try:
-        setup_logging(verbose=verbose)
-        
-        template_path = Path(template)
-        if not template_path.exists():
-            show_error_message(f"Template not found: {template}")
-            raise typer.Exit(1)
-        
-        if not template_path.is_dir():
-            show_error_message(f"Template path must be a directory: {template}")
-            raise typer.Exit(1)
-        
-        # Validate the template structure
-        validator = PBIPValidator()
-        if not validator.validate_template(template_path):
-            show_error_message(f"Invalid template: {template}")
-            raise typer.Exit(1)
-        
-        # Detect model format
-        template_name = template_path.name
-        semantic_model_folder = template_path / f"{template_name}.SemanticModel"
-        tmdl_parser = TMDLParser()
-        model_format = tmdl_parser.detect_model_format(semantic_model_folder)
-        
-        # Display results
-        console.print()
-        console.print(Panel.fit(
-            f"[bold cyan]Template Analysis Results[/bold cyan]\n"
-            f"[bold]Template:[/bold] {template}\n"
-            f"[bold]Model Format:[/bold] {model_format.upper()}",
-            title="🔍 Template Detection",
-            border_style="cyan"
-        ))
-        
-        # Display parameters if found
-        if model_format == "bim":
-            # For BIM format, we need to parse the model.bim file
-            model_bim_path = semantic_model_folder / "model.bim"
-            if model_bim_path.exists():
-                import json
-                with open(model_bim_path, 'r', encoding='utf-8') as f:
-                    model_data = json.load(f)
-                
-                model = model_data.get("model", {})
-                expressions = model.get("expressions", [])
-                
-                if expressions:
-                    table = Table(title="📋 Parameters Found (BIM Format)")
-                    table.add_column("Parameter Name", style="cyan", no_wrap=True)
-                    table.add_column("Current Value", style="green")
-                    table.add_column("Type", style="yellow")
-                    
-                    for expression in expressions:
-                        param_name = expression.get("name", "")
-                        expression_text = expression.get("expression", "")
-                        
-                        # Extract value from expression
-                        import re
-                        value_match = re.search(r'"([^"]+)"', expression_text)
-                        current_value = value_match.group(1) if value_match else "Unknown"
-                        
-                        table.add_row(param_name, current_value, "Parameter")
-                    
-                    console.print(table)
-                else:
-                    show_warning_message("No parameters found in BIM model")
-        
-        elif model_format == "tmdl":
-            # For TMDL format, use the TMDL parser
-            parameters = tmdl_parser.get_all_parameters(semantic_model_folder)
-            
-            if parameters:
-                table = Table(title="📋 Parameters Found (TMDL Format)")
-                table.add_column("Parameter Name", style="cyan", no_wrap=True)
-                table.add_column("Current Value", style="green")
-                table.add_column("Type", style="yellow")
-                
-                for param_name, current_value in parameters.items():
-                    table.add_row(param_name, current_value, "Parameter")
-                
-                console.print(table)
-            else:
-                show_warning_message("No parameters found in TMDL model")
-        
-        show_success_message(f"Template analysis completed successfully!")
-        
-    except (OSError, ValueError) as e:
-        show_error_message(f"A file or data error occurred: {str(e)}")
-        if verbose:
-            console.print_exception()
+    success = run_detection(template, verbose)
+    if not success:
         raise typer.Exit(1)
-    except Exception as e:
-        show_error_message(f"An unexpected error occurred: {str(e)}")
-        if verbose:
-            console.print_exception()
-        raise
 
 
 def main():

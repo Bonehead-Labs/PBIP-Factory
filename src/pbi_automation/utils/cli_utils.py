@@ -14,7 +14,7 @@ def show_splash_screen():
     # Create the main title with pyfiglet using a cleaner font
     title = pyfiglet.figlet_format("PBIP", font="big")
     #set slanted subtitle with smaller size
-    subtitle = pyfiglet.figlet_format("TEMPLATE-PAL", font="slant", width=100)
+    subtitle = pyfiglet.figlet_format("FACTORY", font="slant", width=100)
     
     # Create a clean splash screen without double borders
     splash_content = f"""[bold blue]{title}[/bold blue]
@@ -22,7 +22,7 @@ def show_splash_screen():
 
 [dim]Generate Power BI projects with ease[/dim]
 
-[bold green]Version: 1.0.0[/bold green]
+[bold green]Version: 1.1.0[/bold green]
 """
     
     # Use a simple panel without extra borders
@@ -30,7 +30,7 @@ def show_splash_screen():
         splash_content,
         border_style="blue",
         padding=(1, 2),
-        title="[bold white]Power BI Template Automation[/bold white]"
+        title="[bold white]PBIP Factory[/bold white]"
     )
     console.print(panel)
     console.print()
