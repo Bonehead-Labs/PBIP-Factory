@@ -10,8 +10,11 @@ class DataRow:
         self.data = data
     
     def get_folder_name(self) -> str:
-        """Generate a folder name based on the data."""
-        # Use Report_Name if available, otherwise fall back to Name_Owner
+        """Generate a stable project folder name.
+
+        Prefers the explicit 'Report_Name' column when present; otherwise falls
+        back to a "Name_Owner" concatenation to maintain backward compatibility.
+        """
         if "Report_Name" in self.data:
             return self.data["Report_Name"]
         else:
@@ -28,31 +31,36 @@ class DataRow:
 
 
 def clean_column_name(column_name: str) -> str:
-    """Clean column names by removing BOM and other unwanted characters."""
-    # Remove BOM characters and other common encoding issues
+    """Normalize CSV column names by stripping BOM and whitespace artifacts."""
     return column_name.replace('\ufeff', '').replace('ï»¿', '').strip()
 
 
 def load_data_from_csv(csv_path: Path) -> List[DataRow]:
-    """Load data from a CSV file and return a list of DataRow objects."""
-    data_rows = []
+    """Load CSV into a list of DataRow objects with basic schema validation.
+
+    Enforces a consistent set of columns across all rows to prevent subtle
+    mapping issues during generation.
+    """
+    parsed_rows: List[DataRow] = []
     try:
-        with open(csv_path, 'r', encoding='utf-8-sig') as f:  # utf-8-sig handles BOM automatically
-            reader = csv.DictReader(f)
-            first_row = None
-            for i, row in enumerate(reader, 1):
-                # Clean column names
-                cleaned_row = {clean_column_name(key): value for key, value in row.items()}
-                
-                if first_row is None:
-                    first_row = set(cleaned_row.keys())
+        # utf-8-sig handles potential BOM automatically
+        with open(csv_path, 'r', encoding='utf-8-sig') as csv_file:
+            reader = csv.DictReader(csv_file)
+            expected_columns: List[str] | None = None
+            for row_index, raw_row in enumerate(reader, start=1):
+                cleaned_row = {clean_column_name(key): value for key, value in raw_row.items()}
+
+                if expected_columns is None:
+                    expected_columns = list(cleaned_row.keys())
                 else:
-                    current_row = set(cleaned_row.keys())
-                    if current_row != first_row:
-                        raise ValueError(f"Row {i} has different columns than the first row")
-                data_rows.append(DataRow(cleaned_row))
-        return data_rows
-    except (OSError, csv.Error, ValueError) as e:
-        raise RuntimeError(f"Failed to load or parse CSV: {e}")
-    except Exception as e:
-        raise 
+                    current_columns = list(cleaned_row.keys())
+                    if current_columns != expected_columns:
+                        raise ValueError(f"Row {row_index} has different columns than the first row")
+
+                parsed_rows.append(DataRow(cleaned_row))
+        return parsed_rows
+    except (OSError, csv.Error, ValueError) as error:
+        raise RuntimeError(f"Failed to load or parse CSV: {error}")
+    except Exception:
+        # Re-raise unexpected exceptions to preserve traceback for callers
+        raise
