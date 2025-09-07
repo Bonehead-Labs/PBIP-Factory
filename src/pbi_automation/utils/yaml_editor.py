@@ -1,8 +1,8 @@
 """
-YAML Configuration Editor for PBIP Automation Tool.
+YAML Configuration Editor for PBIP Factory.
 
-This module provides interactive editing capabilities for YAML configuration files,
-with validation, backup, and user-friendly interfaces.
+Provides an interactive editor for YAML configuration files with validation,
+automatic backups, and user-friendly menus.
 """
 
 import json
@@ -22,7 +22,7 @@ from .logger import log_info, log_error, log_warning
 
 
 class YAMLFileManager:
-    """Manages YAML file operations with validation and backup capabilities."""
+    """Manage YAML files with validation and timestamped backup support."""
     
     def __init__(self, file_path: Path):
         self.file_path = Path(file_path)
@@ -33,7 +33,7 @@ class YAMLFileManager:
         self._data: Optional[CommentedMap] = None
     
     def load(self) -> bool:
-        """Load YAML file with error handling."""
+        """Load YAML file into memory with basic error handling."""
         try:
             if not self.file_path.exists():
                 show_error_message(f"Configuration file not found: {self.file_path}")
@@ -54,7 +54,7 @@ class YAMLFileManager:
             return False
     
     def save(self, create_backup: bool = True) -> bool:
-        """Save YAML file with optional backup."""
+        """Persist YAML to disk, optionally creating a timestamped backup first."""
         try:
             if self._data is None:
                 show_error_message("No data to save")
@@ -82,17 +82,17 @@ class YAMLFileManager:
             return False
     
     def get_data(self) -> CommentedMap:
-        """Get the current data."""
+        """Return the in-memory YAML data structure (creates one if absent)."""
         if self._data is None:
             self._data = CommentedMap()
         return self._data
     
     def set_data(self, data: CommentedMap) -> None:
-        """Set the current data."""
+        """Replace the in-memory YAML data structure."""
         self._data = data
     
     def validate_structure(self) -> bool:
-        """Validate the YAML structure."""
+        """Validate the YAML shape: requires a list of parameter objects."""
         try:
             data = self.get_data()
             
@@ -147,18 +147,18 @@ class YAMLFileManager:
         default_config['logging'] = CommentedMap([
             ('level', 'INFO'),
             ('format', 'json'),
-            ('file', 'pbi_automation.log')
+            ('file', 'pbip_factory.log')
         ])
         
-        # Add comments
-        default_config.yaml_add_eol_comment('Configuration for PBIP parameter automation', 0)
-        default_config.yaml_add_eol_comment('This file defines how CSV columns map to parameters in the model.bim file', 0)
+        # Add comments describing purpose
+        default_config.yaml_add_eol_comment('Configuration for PBIP Factory parameter automation', 0)
+        default_config.yaml_add_eol_comment('Maps CSV columns to model parameters (BIM/TMDL)', 0)
         
         return default_config
 
 
 class InteractiveEditor:
-    """Interactive YAML configuration editor."""
+    """Interactive YAML configuration editor with simple menus and prompts."""
     
     def __init__(self, file_path: Path):
         self.file_manager = YAMLFileManager(file_path)
