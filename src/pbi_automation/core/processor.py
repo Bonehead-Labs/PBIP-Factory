@@ -19,29 +19,40 @@ class PBIPProcessor:
         self.tmdl_parser = TMDLParser()
     
     def process_data(self, template_path: Path, data: List[DataRow], output_dir: Path) -> int:
-        """Process all data rows and generate PBIP projects."""
-        success_count = 0
-        
-        for i, row in enumerate(data, 1):
+        """Process all CSV rows and generate PBIP projects.
+
+        Returns the number of successfully generated projects.
+        """
+        num_successful_projects = 0
+        total_rows = len(data)
+
+        for row_index, data_row in enumerate(data, start=1):
             try:
-                log_info(f"Processing row {i}/{len(data)}: {row.get_folder_name()}")
-                
-                if self.process_row(template_path, row, output_dir):
-                    success_count += 1
-                    log_info(f"Generated PBIP folder: {row.get_folder_name()}")
+                log_info(f"Processing row {row_index}/{total_rows}: {data_row.get_folder_name()}")
+
+                if self.process_row(template_path, data_row, output_dir):
+                    num_successful_projects += 1
+                    log_info(f"Generated PBIP folder: {data_row.get_folder_name()}")
                 else:
-                    show_error_message(f"Failed to process row {i}: Failed to generate PBIP")
-                    
-            except (OSError, ValueError) as e:
-                show_error_message(f"Failed to process row {i}: {str(e)}")
-            except Exception as e:
-                show_error_message(f"Unexpected error in row {i}: {str(e)}")
+                    show_error_message(f"Failed to process row {row_index}: Failed to generate PBIP")
+
+            except (OSError, ValueError) as error:
+                show_error_message(f"Failed to process row {row_index}: {str(error)}")
+            except Exception as unexpected_error:
+                show_error_message(f"Unexpected error in row {row_index}: {str(unexpected_error)}")
                 raise
-        
-        return success_count
+
+        return num_successful_projects
     
     def process_row(self, template_path: Path, row: DataRow, output_dir: Path) -> bool:
-        """Process a single data row and generate a PBIP project."""
+        """Process a single CSV record and generate a PBIP project.
+
+        Steps:
+        1) Copy template → output folder
+        2) Rename artifacts (.pbip, .Report, .SemanticModel) and internal references
+        3) Update parameter values in BIM/TMDL model files
+        4) Remove cache for clean refresh in Power BI Desktop
+        """
         try:
             # Create output folder name
             folder_name = row.get_folder_name()
@@ -52,7 +63,7 @@ class PBIPProcessor:
             if not self._copy_pbip_folder(template_path, output_folder):
                 return False
             
-            # Rename internal files and folders
+            # Rename internal files and folders to match the new report name
             self._rename_internal_files_and_folders(output_folder, report_name)
             
             # Get the actual template name for reference replacement
@@ -66,10 +77,10 @@ class PBIPProcessor:
                     break
             
             if template_name:
-                # Recursively replace all template name references in all files
+                # Recursively replace all template-name references across text files
                 self._replace_references_in_files(output_folder, template_name, report_name)
             
-            # Update parameters based on detected format
+            # Update parameters based on detected semantic model format (BIM or TMDL)
             semantic_model_folder = output_folder / f"{report_name}.SemanticModel"
             model_format = self.tmdl_parser.detect_model_format(semantic_model_folder)
             
