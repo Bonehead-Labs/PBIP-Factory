@@ -1,0 +1,19 @@
+# Example configuration for PBIP parameter automation
+# This file defines how CSV columns map to parameters in the semantic model
+
+parameters:
+  # String parameters
+  - name: "Name"           # Must match parameter name in semantic model
+    type: "string"         # Data type for validation and conversion
+  - name: "Owner"
+    type: "string"
+
+  - name: Ass
+    type: float
+output:
+  directory: "./output"
+
+logging:
+  level: "INFO"           # Logging level: DEBUG, INFO, WARNING, ERROR
+  format: "json"          # Log format: json, text
+  file: "pbi_automation.log"  # Optional log file 

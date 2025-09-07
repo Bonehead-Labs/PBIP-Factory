@@ -43,13 +43,3 @@ Thumbs.db
 
 # Logs
 *.log 
-
-# Ignore only contents not folders
-configs/*
-!configs/.gitkeep
-data/*
-!data/.gitkeep
-templates/*
-!templates/.gitkeep
-outputs/*
-!outputs/.gitkeep
