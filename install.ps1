@@ -1,7 +1,7 @@
 # PBIP Template Automation - PowerShell Installer
 # This script downloads, installs, and sets up the PBIP Template Automation tool
 
-Write-Host "Installing PBIP Template Automation..." -ForegroundColor Green
+Write-Host "Installing PBIP Factory..." -ForegroundColor Green
 
 # Check if Python is installed
 try {
@@ -26,8 +26,8 @@ $installDir = Get-Location
 Write-Host "Installing to: $installDir" -ForegroundColor Green
 
 # Set the repository URL
-$repoUrl = "https://github.com/George-Nizor/_PBI_Template_Automation.git"
-$repoName = "_PBI_Template_Automation"
+$repoUrl = "https://github.com/Bonehead-Labs/PBIP-Factory.git"
+$repoName = "PBIP-Factory"
 
 # Clone or update the repository
 if (Test-Path $repoName) {
@@ -130,17 +130,17 @@ pip install -e .
 # Verify the installation worked
 Write-Host "Verifying installation..." -ForegroundColor Yellow
 try {
-    $null = Get-Command pbi-automation -ErrorAction Stop
-    Write-Host "✅ pbi-automation command found" -ForegroundColor Green
+    $null = Get-Command pbip-factory -ErrorAction Stop
+    Write-Host "✅ pbip-factory command found" -ForegroundColor Green
 } catch {
-    Write-Host "⚠️  pbi-automation command not found, trying alternative installation..." -ForegroundColor Yellow
+    Write-Host "⚠️  pbip-factory command not found, trying alternative installation..." -ForegroundColor Yellow
     # Try installing with pip directly
     pip install -e . --force-reinstall
 }
 
 # Final verification
 try {
-    $null = Get-Command pbi-automation -ErrorAction Stop
+    $null = Get-Command pbip-factory -ErrorAction Stop
     Write-Host "✅ Package installation verified" -ForegroundColor Green
 } catch {
     Write-Host "❌ Package installation failed. Please try running: pip install -e ." -ForegroundColor Red
@@ -149,18 +149,18 @@ try {
 
 # Verify installation
 Write-Host "✅ Installation complete!" -ForegroundColor Green
-Write-Host "🎉 PBIP Template Automation is ready to use!" -ForegroundColor Green
+Write-Host "🎉 PBIP Factory is ready to use!" -ForegroundColor Green
 Write-Host "📁 Installation location: $(Get-Location)" -ForegroundColor Cyan
 Write-Host ""
 
 # Show launch instructions
-Write-Host "🚀 To launch PBIP Template Automation, run:" -ForegroundColor Yellow
+Write-Host "🚀 To launch PBIP Factory, run:" -ForegroundColor Yellow
 Write-Host "   cd $repoName" -ForegroundColor Cyan
 Write-Host "   .venv\Scripts\activate" -ForegroundColor Cyan
-Write-Host "   pbi-automation launch" -ForegroundColor Cyan
+Write-Host "   pbip-factory launch" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "💡 Or use the one-liner:" -ForegroundColor Yellow
-Write-Host "   cd $repoName; .venv\Scripts\activate; pbi-automation launch" -ForegroundColor Cyan
+Write-Host "   cd $repoName; .venv\Scripts\activate; pbip-factory launch" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "🔧 If the command doesn't work, try:" -ForegroundColor Yellow
 Write-Host "   cd $repoName; .venv\Scripts\activate; python -m pbi_automation.cli launch" -ForegroundColor Cyan

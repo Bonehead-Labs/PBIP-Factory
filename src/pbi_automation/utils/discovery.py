@@ -55,19 +55,19 @@ class DiscoveryManager:
                         "type": "new"
                     })
         
-        # Check legacy locations
-        legacy_locations = [
-            self.project_root / "Example_PBIP",
-            self.project_root / "POC for changing LINK contracts"
-        ]
-        
-        for legacy_path in legacy_locations:
-            if legacy_path.exists() and self._is_valid_template(legacy_path):
-                templates.append({
-                    "name": legacy_path.name,
-                    "path": str(legacy_path),
-                    "type": "legacy"
-                })
+        # Optional legacy discovery behind env flag
+        if os.getenv("PBIP_LEGACY_DISCOVERY") == "1":
+            legacy_locations = [
+                self.project_root / "Example_PBIP",
+                self.project_root / "POC for changing LINK contracts"
+            ]
+            for legacy_path in legacy_locations:
+                if legacy_path.exists() and self._is_valid_template(legacy_path):
+                    templates.append({
+                        "name": legacy_path.name,
+                        "path": str(legacy_path),
+                        "type": "legacy"
+                    })
         
         return templates
     
@@ -85,16 +85,17 @@ class DiscoveryManager:
                         "type": "new"
                     })
         
-        # Check legacy examples/configs directory
-        legacy_configs_dir = self.project_root / "examples" / "configs"
-        if legacy_configs_dir.exists():
-            for item in legacy_configs_dir.iterdir():
-                if item.is_file() and item.suffix.lower() in ['.yaml', '.yml']:
-                    configs.append({
-                        "name": item.stem,
-                        "path": str(item),
-                        "type": "legacy"
-                    })
+        # Optional legacy examples/configs
+        if os.getenv("PBIP_LEGACY_DISCOVERY") == "1":
+            legacy_configs_dir = self.project_root / "examples" / "configs"
+            if legacy_configs_dir.exists():
+                for item in legacy_configs_dir.iterdir():
+                    if item.is_file() and item.suffix.lower() in ['.yaml', '.yml']:
+                        configs.append({
+                            "name": item.stem,
+                            "path": str(item),
+                            "type": "legacy"
+                        })
         
         return configs
     
@@ -112,16 +113,17 @@ class DiscoveryManager:
                         "type": "new"
                     })
         
-        # Check legacy examples/data directory
-        legacy_data_dir = self.project_root / "examples" / "data"
-        if legacy_data_dir.exists():
-            for item in legacy_data_dir.iterdir():
-                if item.is_file() and item.suffix.lower() == '.csv':
-                    data_files.append({
-                        "name": item.stem,
-                        "path": str(item),
-                        "type": "legacy"
-                    })
+        # Optional legacy examples/data
+        if os.getenv("PBIP_LEGACY_DISCOVERY") == "1":
+            legacy_data_dir = self.project_root / "examples" / "data"
+            if legacy_data_dir.exists():
+                for item in legacy_data_dir.iterdir():
+                    if item.is_file() and item.suffix.lower() == '.csv':
+                        data_files.append({
+                            "name": item.stem,
+                            "path": str(item),
+                            "type": "legacy"
+                        })
         
         return data_files
     

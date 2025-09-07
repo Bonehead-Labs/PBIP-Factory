@@ -2,7 +2,7 @@
 # PBIP Template Automation - Bash Installer
 # This script downloads, installs, and sets up the PBIP Template Automation tool
 
-echo -e "\033[32mInstalling PBIP Template Automation...\033[0m"
+echo -e "\033[32mInstalling PBIP Factory...\033[0m"
 
 # Check if Python is installed
 if command -v python3 &> /dev/null; then
@@ -32,8 +32,8 @@ install_dir=$(pwd)
 echo -e "\033[32mInstalling to: $install_dir\033[0m"
 
 # Set the repository URL
-repo_url="https://github.com/George-Nizor/_PBI_Template_Automation.git"
-repo_name="_PBI_Template_Automation"
+repo_url="https://github.com/Bonehead-Labs/PBIP-Factory.git"
+repo_name="PBIP-Factory"
 
 # Clone or update the repository
 if [ -d "$repo_name" ]; then
@@ -120,16 +120,16 @@ pip install -e .
 
 # Verify the installation worked
 echo -e "\033[33mVerifying installation...\033[0m"
-if command -v pbi-automation &> /dev/null; then
-    echo -e "\033[32m✅ pbi-automation command found\033[0m"
+if command -v pbip-factory &> /dev/null; then
+    echo -e "\033[32m✅ pbip-factory command found\033[0m"
 else
-    echo -e "\033[33m⚠️  pbi-automation command not found, trying alternative installation...\033[0m"
+    echo -e "\033[33m⚠️  pbip-factory command not found, trying alternative installation...\033[0m"
     # Try installing with pip directly
     pip install -e . --force-reinstall
 fi
 
 # Final verification
-if command -v pbi-automation &> /dev/null; then
+if command -v pbip-factory &> /dev/null; then
     echo -e "\033[32m✅ Package installation verified\033[0m"
 else
     echo -e "\033[31m❌ Package installation failed. Please try running: pip install -e .\033[0m"
@@ -138,18 +138,18 @@ fi
 
 # Verify installation
 echo -e "\033[32m✅ Installation complete!\033[0m"
-echo -e "\033[32m🎉 PBIP Template Automation is ready to use!\033[0m"
+echo -e "\033[32m🎉 PBIP Factory is ready to use!\033[0m"
 echo -e "\033[36m📁 Installation location: $(pwd)\033[0m"
 echo ""
 
 # Show launch instructions
-echo -e "\033[33m🚀 To launch PBIP Template Automation, run:\033[0m"
+echo -e "\033[33m🚀 To launch PBIP Factory, run:\033[0m"
 echo -e "\033[36m   cd $repo_name\033[0m"
 echo -e "\033[36m   source .venv/bin/activate\033[0m"
-echo -e "\033[36m   pbi-automation launch\033[0m"
+echo -e "\033[36m   pbip-factory launch\033[0m"
 echo ""
 echo -e "\033[33m💡 Or use the one-liner:\033[0m"
-echo -e "\033[36m   cd $repo_name && source .venv/bin/activate && pbi-automation launch\033[0m"
+echo -e "\033[36m   cd $repo_name && source .venv/bin/activate && pbip-factory launch\033[0m"
 echo ""
 echo -e "\033[33m🔧 If the command doesn't work, try:\033[0m"
 echo -e "\033[36m   cd $repo_name && source .venv/bin/activate && python -m pbi_automation.cli launch\033[0m"

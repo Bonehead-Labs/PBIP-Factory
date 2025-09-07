@@ -25,12 +25,12 @@ Use the platform installer to set up everything automatically in the current dir
 
 Windows (PowerShell):
 ```powershell
-irm "https://raw.githubusercontent.com/George-Nizor/_PBI_Template_Automation/main/install.ps1" | iex
+irm "https://raw.githubusercontent.com/Bonehead-Labs/PBIP-Factory/main/install.ps1" | iex
 ```
 
 Linux/Mac (Bash):
 ```bash
-curl -sSL https://raw.githubusercontent.com/George-Nizor/_PBI_Template_Automation/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Bonehead-Labs/PBIP-Factory/main/install.sh | bash
 ```
 
 These installers will:
@@ -42,7 +42,7 @@ These installers will:
 After installation:
 ```bash
 # Navigate to the installation directory
-cd _PBI_Template_Automation
+cd PBIP-Factory
 
 # Activate the virtual environment
 # Windows
@@ -51,7 +51,7 @@ cd _PBI_Template_Automation
 source .venv/bin/activate
 
 # Launch in interactive mode
-pbi-automation launch
+pbip-factory launch
 ```
 
 ## Features
@@ -76,8 +76,8 @@ pbi-automation launch
 ### Option A: Using uv (recommended)
 
 ```bash
-git clone https://github.com/George-Nizor/_PBI_Template_Automation.git
-cd _PBI_Template_Automation
+git clone https://github.com/Bonehead-Labs/PBIP-Factory.git
+cd PBIP-Factory
 
 # Create and activate a virtual environment
 uv venv
@@ -93,8 +93,8 @@ uv pip install -e ".[dev]"
 ### Option B: Using pip
 
 ```bash
-git clone https://github.com/George-Nizor/_PBI_Template_Automation.git
-cd _PBI_Template_Automation
+git clone https://github.com/Bonehead-Labs/PBIP-Factory.git
+cd PBIP-Factory
 
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
@@ -108,13 +108,13 @@ pip install -e ".[dev]"
 
 ### Interactive mode
 ```bash
-pbi-automation launch
+pbip-factory launch
 ```
 
 ### Command examples
 ```bash
 # Generate PBIP projects from a template
-pbi-automation generate \
+pbip-factory generate \
   --template Example_PBIP \
   --config configs/pbip_config.yaml \
   --data data/pbip_data.csv \
@@ -122,18 +122,18 @@ pbi-automation generate \
   --verbose
 
 # Discover available resources
-pbi-automation list templates
-pbi-automation list configs
-pbi-automation list data
+pbip-factory list templates
+pbip-factory list configs
+pbip-factory list data
 
 # Inspect template format and parameters
-pbi-automation detect --template templates/Example_PBIP
+pbip-factory detect --template templates/Example_PBIP
 
 # Edit configuration interactively
-pbi-automation edit --config configs/pbip_config.yaml
+pbip-factory edit --config configs/pbip_config.yaml
 
 # Version
-pbi-automation version
+pbip-factory version
 ```
 
 ### Command options
