@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "pbip-factory"
 version = "1.1.0"
-description = "A tool for automating Power BI template (PBIP) generation with parameter updates"
+description = "PBIP Factory - A tool for automating Power BI template (PBIP) generation with parameter updates"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "Power BI Template Automation Team", email = "team@example.com"}
+    {name = "PBIP Factory Team", email = "team@example.com"}
 ]
 keywords = ["powerbi", "automation", "template", "pbip"]
 classifiers = [

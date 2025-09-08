@@ -1,5 +1,5 @@
-# PBIP Template Automation - PowerShell Installer
-# This script downloads, installs, and sets up the PBIP Template Automation tool
+# PBIP Factory - PowerShell Installer
+# This script downloads, installs, and sets up the PBIP Factory tool
 
 Write-Host "Installing PBIP Factory..." -ForegroundColor Green
 

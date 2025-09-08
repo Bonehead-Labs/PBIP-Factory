@@ -1,6 +1,6 @@
 #!/bin/bash
-# PBIP Template Automation - Bash Installer
-# This script downloads, installs, and sets up the PBIP Template Automation tool
+# PBIP Factory - Bash Installer
+# This script downloads, installs, and sets up the PBIP Factory tool
 
 echo -e "\033[32mInstalling PBIP Factory...\033[0m"
 

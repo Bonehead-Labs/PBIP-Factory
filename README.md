@@ -1,8 +1,13 @@
-## PBIP Template Automation
+<div align="center">
+  <img src="src/pbi_automation/logos/Power BI Logo.png" alt="Power BI Logo" width="200" height="100" style="margin-right: 20px;">
+  <img src="src/pbi_automation/logos/image.png" alt="PBIP Factory Logo" width="200" height="100">
+</div>
+
+# PBIP Factory
 
 Automate generation of Power BI PBIP projects from a master template with parameterized updates. Given a single PBIP template and a CSV of parameter values, this tool produces multiple, independent, ready-to-open Power BI projects.
 
-Designed with reliability and clarity in mind, following conventions you’ll recognize from major open-source projects.
+Designed with reliability and clarity in mind, following conventions you'll recognize from major open-source projects.
 
 ## Contents
 
