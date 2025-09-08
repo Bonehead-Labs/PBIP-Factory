@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="src/pbi_automation/logos/Power BI Logo.png" alt="Power BI Logo" width="200" height="100" style="margin-right: 20px;">
-  <img src="src/pbi_automation/logos/image.png" alt="PBIP Factory Logo" width="200" height="100">
+  <img src="src/pbi_automation/logos/Power BI Logo.png" alt="Power BI Logo" height="120" style="margin-right: 20px;">
+  <img src="src/pbi_automation/logos/image.png" alt="PBIP Factory Logo" height="120">
 </div>
 
 # PBIP Factory
